@@ -1,13 +1,46 @@
 
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Shield, Menu, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Shield, Menu, X, MessageCircle, Users, Lock, LogOut, LogIn } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    // Check current session
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+    };
+    
+    getSession();
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user || null);
+      }
+    );
+    
+    return () => subscription.unsubscribe();
+  }, []);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+  };
+  
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
+    });
+    navigate('/');
   };
 
   return (
@@ -22,10 +55,25 @@ const Navigation = () => {
           <div className="hidden md:flex space-x-6 items-center">
             <Link to="/" className="text-gray-700 hover:text-veritas-purple transition-colors">Home</Link>
             <Link to="/profile-guard" className="text-gray-700 hover:text-veritas-purple transition-colors">ProfileGuard</Link>
+            <Link to="/chatbot" className="text-gray-700 hover:text-veritas-purple transition-colors">Safety Assistant</Link>
+            <Link to="/face-check" className="text-gray-700 hover:text-veritas-purple transition-colors">Image Check</Link>
+            <Link to="/vault" className="text-gray-700 hover:text-veritas-purple transition-colors">Secure Vault</Link>
             <Link to="/report" className="text-gray-700 hover:text-veritas-purple transition-colors">Report</Link>
-            <Link to="/evidence" className="text-gray-700 hover:text-veritas-purple transition-colors">Evidence</Link>
-            <Link to="/quiz" className="text-gray-700 hover:text-veritas-purple transition-colors">Safety Quiz</Link>
-            <Link to="/verify" className="btn-outline text-sm py-1.5 px-3">Verify Case</Link>
+            
+            {user ? (
+              <button 
+                onClick={handleLogout}
+                className="flex items-center text-gray-700 hover:text-veritas-purple transition-colors"
+              >
+                <LogOut className="h-4 w-4 mr-1" />
+                Logout
+              </button>
+            ) : (
+              <Link to="/login" className="btn-outline text-sm py-1.5 px-3 flex items-center">
+                <LogIn className="h-4 w-4 mr-1" />
+                Sign In
+              </Link>
+            )}
           </div>
 
           <button 
@@ -48,10 +96,35 @@ const Navigation = () => {
           <div className="container mx-auto px-4 flex flex-col space-y-3 py-3">
             <Link to="/" className="text-gray-700 hover:text-veritas-purple py-2 transition-colors" onClick={toggleMenu}>Home</Link>
             <Link to="/profile-guard" className="text-gray-700 hover:text-veritas-purple py-2 transition-colors" onClick={toggleMenu}>ProfileGuard</Link>
+            <Link to="/chatbot" className="text-gray-700 hover:text-veritas-purple py-2 transition-colors" onClick={toggleMenu}>
+              <MessageCircle className="h-4 w-4 inline mr-1" /> Safety Assistant
+            </Link>
+            <Link to="/face-check" className="text-gray-700 hover:text-veritas-purple py-2 transition-colors" onClick={toggleMenu}>
+              <Users className="h-4 w-4 inline mr-1" /> Image Check
+            </Link>
+            <Link to="/vault" className="text-gray-700 hover:text-veritas-purple py-2 transition-colors" onClick={toggleMenu}>
+              <Lock className="h-4 w-4 inline mr-1" /> Secure Vault
+            </Link>
             <Link to="/report" className="text-gray-700 hover:text-veritas-purple py-2 transition-colors" onClick={toggleMenu}>Report</Link>
             <Link to="/evidence" className="text-gray-700 hover:text-veritas-purple py-2 transition-colors" onClick={toggleMenu}>Evidence</Link>
             <Link to="/quiz" className="text-gray-700 hover:text-veritas-purple py-2 transition-colors" onClick={toggleMenu}>Safety Quiz</Link>
-            <Link to="/verify" className="btn-outline text-center w-full mt-2" onClick={toggleMenu}>Verify Case</Link>
+            <Link to="/verify" className="text-gray-700 hover:text-veritas-purple py-2 transition-colors" onClick={toggleMenu}>Verify Case</Link>
+            
+            {user ? (
+              <button 
+                onClick={() => {
+                  handleLogout();
+                  toggleMenu();
+                }}
+                className="text-gray-700 hover:text-veritas-purple py-2 transition-colors flex items-center"
+              >
+                <LogOut className="h-4 w-4 mr-1" /> Logout
+              </button>
+            ) : (
+              <Link to="/login" className="btn-outline text-center w-full mt-2" onClick={toggleMenu}>
+                Sign In
+              </Link>
+            )}
           </div>
         </div>
       )}

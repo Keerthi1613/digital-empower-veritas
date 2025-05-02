@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldCheck, FileText, Users, Lock } from 'lucide-react';
+import { ShieldCheck, FileText, Users, Lock, MessageCircle } from 'lucide-react';
 
 const HeroSection = () => {
   return (
@@ -23,11 +23,11 @@ const HeroSection = () => {
             and create tamper-proof digital evidence while staying anonymous.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <Link to="/profile-guard" className="btn-primary">
-              Scan Suspicious Profiles
+            <Link to="/chatbot" className="btn-primary">
+              Get Safety Guidance
             </Link>
-            <Link to="/report" className="btn-secondary">
-              Report Anonymously
+            <Link to="/face-check" className="btn-secondary">
+              Check Suspicious Profiles
             </Link>
           </div>
         </div>
@@ -35,26 +35,26 @@ const HeroSection = () => {
         <div className="mt-20 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100 hover:shadow-lg transition duration-300">
             <div className="bg-veritas-lightPurple p-3 rounded-full w-14 h-14 flex items-center justify-center mb-4">
-              <ShieldCheck className="h-8 w-8 text-veritas-purple" />
+              <MessageCircle className="h-8 w-8 text-veritas-purple" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">Scam Detection</h3>
-            <p className="text-gray-600">Identify fake profiles and deepfakes with AI technology</p>
+            <h3 className="text-xl font-semibold mb-2">AI Safety Assistant</h3>
+            <p className="text-gray-600">Get personalized guidance on digital safety issues</p>
           </div>
           
           <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100 hover:shadow-lg transition duration-300">
             <div className="bg-veritas-lightPurple p-3 rounded-full w-14 h-14 flex items-center justify-center mb-4">
               <Users className="h-8 w-8 text-veritas-purple" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">Anonymous Reporting</h3>
-            <p className="text-gray-600">Submit reports without revealing your identity</p>
+            <h3 className="text-xl font-semibold mb-2">Profile Scanner</h3>
+            <p className="text-gray-600">Detect fake profiles and AI-generated images</p>
           </div>
           
           <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100 hover:shadow-lg transition duration-300">
             <div className="bg-veritas-lightPurple p-3 rounded-full w-14 h-14 flex items-center justify-center mb-4">
               <Lock className="h-8 w-8 text-veritas-purple" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">Tamper-Proof Evidence</h3>
-            <p className="text-gray-600">Create court-admissible digital proof with blockchain</p>
+            <h3 className="text-xl font-semibold mb-2">Secure Vault</h3>
+            <p className="text-gray-600">Store encrypted evidence safely in the cloud</p>
           </div>
           
           <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100 hover:shadow-lg transition duration-300">

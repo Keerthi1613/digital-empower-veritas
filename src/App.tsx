@@ -11,6 +11,10 @@ import Evidence from "./pages/Evidence";
 import Quiz from "./pages/Quiz";
 import Verify from "./pages/Verify";
 import NotFound from "./pages/NotFound";
+import Chatbot from "./pages/Chatbot";
+import FaceCheck from "./pages/FaceCheck";
+import EmergencyVault from "./pages/EmergencyVault";
+import Login from "./pages/Login";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +31,10 @@ const App = () => (
           <Route path="/evidence" element={<Evidence />} />
           <Route path="/quiz" element={<Quiz />} />
           <Route path="/verify" element={<Verify />} />
+          <Route path="/chatbot" element={<Chatbot />} />
+          <Route path="/face-check" element={<FaceCheck />} />
+          <Route path="/vault" element={<EmergencyVault />} />
+          <Route path="/login" element={<Login />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
