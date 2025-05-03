@@ -15,6 +15,7 @@ import Chatbot from "./pages/Chatbot";
 import FaceCheck from "./pages/FaceCheck";
 import EmergencyVault from "./pages/EmergencyVault";
 import Login from "./pages/Login";
+import SignIn from "./pages/SignIn";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/face-check" element={<FaceCheck />} />
           <Route path="/vault" element={<EmergencyVault />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/signin" element={<SignIn />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

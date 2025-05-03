@@ -69,7 +69,7 @@ const Navigation = () => {
                 Logout
               </button>
             ) : (
-              <Link to="/login" className="btn-outline text-sm py-1.5 px-3 flex items-center">
+              <Link to="/signin" className="btn-outline text-sm py-1.5 px-3 flex items-center">
                 <LogIn className="h-4 w-4 mr-1" />
                 Sign In
               </Link>
@@ -121,7 +121,7 @@ const Navigation = () => {
                 <LogOut className="h-4 w-4 mr-1" /> Logout
               </button>
             ) : (
-              <Link to="/login" className="btn-outline text-center w-full mt-2" onClick={toggleMenu}>
+              <Link to="/signin" className="btn-outline text-center w-full mt-2" onClick={toggleMenu}>
                 Sign In
               </Link>
             )}
