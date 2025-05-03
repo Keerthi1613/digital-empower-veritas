@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import ProfileGuard from "./pages/ProfileGuard";
 import ReportSubmission from "./pages/ReportSubmission";
@@ -16,32 +16,65 @@ import FaceCheck from "./pages/FaceCheck";
 import EmergencyVault from "./pages/EmergencyVault";
 import Login from "./pages/Login";
 import SignIn from "./pages/SignIn";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/profile-guard" element={<ProfileGuard />} />
-          <Route path="/report" element={<ReportSubmission />} />
-          <Route path="/evidence" element={<Evidence />} />
-          <Route path="/quiz" element={<Quiz />} />
-          <Route path="/verify" element={<Verify />} />
-          <Route path="/chatbot" element={<Chatbot />} />
-          <Route path="/face-check" element={<FaceCheck />} />
-          <Route path="/vault" element={<EmergencyVault />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signin" element={<SignIn />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // Check current session
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsLoggedIn(!!session);
+    };
+    
+    getSession();
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setIsLoggedIn(!!session);
+      }
+    );
+    
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Show loading state while checking authentication
+  if (isLoggedIn === null) {
+    return <div className="h-screen w-screen flex items-center justify-center">Loading...</div>;
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/signin" element={!isLoggedIn ? <SignIn /> : <Navigate to="/" />} />
+            <Route path="/login" element={!isLoggedIn ? <Login /> : <Navigate to="/" />} />
+            
+            {/* Protected routes - redirect to login if not authenticated */}
+            <Route path="/" element={isLoggedIn ? <Index /> : <Navigate to="/signin" />} />
+            <Route path="/profile-guard" element={isLoggedIn ? <ProfileGuard /> : <Navigate to="/signin" />} />
+            <Route path="/report" element={isLoggedIn ? <ReportSubmission /> : <Navigate to="/signin" />} />
+            <Route path="/evidence" element={isLoggedIn ? <Evidence /> : <Navigate to="/signin" />} />
+            <Route path="/quiz" element={isLoggedIn ? <Quiz /> : <Navigate to="/signin" />} />
+            <Route path="/verify" element={isLoggedIn ? <Verify /> : <Navigate to="/signin" />} />
+            <Route path="/chatbot" element={isLoggedIn ? <Chatbot /> : <Navigate to="/signin" />} />
+            <Route path="/face-check" element={isLoggedIn ? <FaceCheck /> : <Navigate to="/signin" />} />
+            <Route path="/vault" element={isLoggedIn ? <EmergencyVault /> : <Navigate to="/signin" />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

@@ -43,6 +43,9 @@ const Navigation = () => {
     navigate('/');
   };
 
+  // If there's no user, don't render the navigation
+  if (!user) return null;
+
   return (
     <nav className="bg-white shadow-md sticky top-0 z-50">
       <div className="container mx-auto px-4 md:px-6">

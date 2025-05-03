@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Mail, Lock, Shield } from 'lucide-react';
-import Navigation from '../components/Navigation';
 import Footer from '../components/Footer';
 
 interface AuthState {
@@ -109,8 +107,6 @@ const SignIn = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navigation />
-      
       <main className="flex-grow bg-gray-50 flex justify-center items-center py-12">
         <div className="max-w-md w-full p-6 bg-white rounded-xl shadow-md">
           <div className="flex justify-center mb-6">
