@@ -4,6 +4,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import 'https://deno.land/x/xhr@0.1.0/mod.ts';
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const supabaseUrl = Deno.env.get('SUPABASE_URL');
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,6 +21,10 @@ serve(async (req) => {
   try {
     if (!openAIApiKey) {
       throw new Error('OPENAI_API_KEY is not set');
+    }
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Supabase credentials are not set');
     }
 
     const { imageUrl } = await req.json();
