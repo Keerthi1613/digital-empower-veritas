@@ -23,12 +23,15 @@ const queryClient = new QueryClient();
 
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     // Check current session
     const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      console.log("Current session:", session);
       setIsLoggedIn(!!session);
+      setUserId(session?.user?.id || null);
     };
     
     getSession();
@@ -36,7 +39,9 @@ const App = () => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log("Auth state changed:", event, session?.user?.id);
         setIsLoggedIn(!!session);
+        setUserId(session?.user?.id || null);
       }
     );
     

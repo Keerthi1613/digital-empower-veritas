@@ -1,8 +1,11 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import 'https://deno.land/x/xhr@0.1.0/mod.ts';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const supabaseUrl = Deno.env.get('SUPABASE_URL');
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,8 +19,21 @@ serve(async (req) => {
   }
 
   try {
-    const { message, conversationId } = await req.json();
+    const { message, conversationId, userId } = await req.json();
+    
+    if (!openAIApiKey) {
+      throw new Error('OPENAI_API_KEY is not set');
+    }
 
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Supabase credentials are not set');
+    }
+
+    // Initialize Supabase client with service role key for admin access
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    console.log('Received request:', { conversationId, userId });
+    
     // Call OpenAI API
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -40,6 +56,21 @@ serve(async (req) => {
 
     const data = await response.json();
     const aiResponse = data.choices[0].message.content;
+    
+    // Save assistant response to database using service role
+    if (conversationId) {
+      const { error: saveError } = await supabase
+        .from('chat_messages')
+        .insert({
+          conversation_id: conversationId,
+          role: 'assistant',
+          content: aiResponse
+        });
+        
+      if (saveError) {
+        console.error('Error saving assistant message:', saveError);
+      }
+    }
     
     return new Response(JSON.stringify({ response: aiResponse }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

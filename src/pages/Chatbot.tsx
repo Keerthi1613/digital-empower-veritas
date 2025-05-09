@@ -6,7 +6,7 @@ import Footer from '../components/Footer';
 import { useToast } from '@/hooks/use-toast';
 import { Send, Bot, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 
 interface Message {
   id: string;
@@ -26,46 +26,76 @@ const Chatbot = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
-  // Create a new conversation on component mount
+  // Get current user
   useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+      }
+    };
+    
+    getUser();
+  }, []);
+  
+  // Create a new conversation when user is available
+  useEffect(() => {
+    if (!userId) return;
+    
     const createNewConversation = async () => {
-      const { data, error } = await supabase
-        .from('chat_conversations')
-        .insert([{ conversation_name: 'Safety Chat ' + new Date().toLocaleDateString() }])
-        .select();
-      
-      if (error) {
-        console.error('Error creating conversation:', error);
+      try {
+        const { data, error } = await supabase
+          .from('chat_conversations')
+          .insert([{ 
+            conversation_name: 'Safety Chat ' + new Date().toLocaleDateString(),
+            user_id: userId 
+          }])
+          .select();
+        
+        if (error) {
+          console.error('Error creating conversation:', error);
+          toast({
+            title: "Error",
+            description: "Failed to start a new conversation. Try refreshing the page.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        if (data && data.length > 0) {
+          setConversationId(data[0].id);
+          // Set welcome message
+          const welcomeMessage = {
+            id: 'welcome',
+            role: 'assistant' as const,
+            content: "Hello, I'm VERITAS Safety Assistant. How can I help you stay safe online today?",
+            created_at: new Date().toISOString()
+          };
+          setMessages([welcomeMessage]);
+          
+          // Save welcome message to database
+          await supabase.from('chat_messages').insert({
+            conversation_id: data[0].id,
+            role: 'assistant',
+            content: welcomeMessage.content
+          });
+        }
+      } catch (err) {
+        console.error('Unexpected error:', err);
         toast({
           title: "Error",
-          description: "Failed to start a new conversation. You may need to sign in.",
+          description: "An unexpected error occurred. Please try again later.",
           variant: "destructive",
-        });
-      } else if (data && data.length > 0) {
-        setConversationId(data[0].id);
-        // Set welcome message
-        const welcomeMessage = {
-          id: 'welcome',
-          role: 'assistant' as const,
-          content: "Hello, I'm VERITAS Safety Assistant. How can I help you stay safe online today?",
-          created_at: new Date().toISOString()
-        };
-        setMessages([welcomeMessage]);
-        
-        // Save welcome message to database
-        await supabase.from('chat_messages').insert({
-          conversation_id: data[0].id,
-          role: 'assistant',
-          content: welcomeMessage.content
         });
       }
     };
     
     createNewConversation();
-  }, []);
+  }, [userId]);
   
   // Scroll to bottom when messages update
   useEffect(() => {
@@ -90,21 +120,14 @@ const Chatbot = () => {
       
       // Call the AI chatbot function
       const response = await supabase.functions.invoke('ai-chatbot', {
-        body: { message: newMessage.content, conversationId },
+        body: { 
+          message: newMessage.content, 
+          conversationId,
+          userId
+        },
       });
       
       if (response.error) throw new Error(response.error.message);
-      
-      // Save assistant response to database
-      const { error: assistantError } = await supabase
-        .from('chat_messages')
-        .insert({
-          conversation_id: conversationId,
-          role: 'assistant',
-          content: response.data.response
-        });
-        
-      if (assistantError) throw assistantError;
       
       return { 
         userMessageId: messageData[0].id,
@@ -152,6 +175,21 @@ const Chatbot = () => {
     
     sendMessageMutation.mutate({ content: userMessage.content });
   };
+
+  if (!userId) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navigation />
+        <main className="flex-grow flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Please log in to use the Safety Assistant</h1>
+            <p>You need to be logged in to use this feature.</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
