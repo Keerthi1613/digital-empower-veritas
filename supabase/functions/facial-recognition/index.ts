@@ -17,8 +17,18 @@ serve(async (req) => {
   }
 
   try {
+    if (!openAIApiKey) {
+      throw new Error('OPENAI_API_KEY is not set');
+    }
+
     const { imageUrl } = await req.json();
+    console.log("Received image URL for analysis:", imageUrl);
     
+    if (!imageUrl) {
+      throw new Error('No image URL provided');
+    }
+    
+    console.log("Calling OpenAI API for image analysis");
     // Call OpenAI API to analyze the image
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -51,20 +61,43 @@ serve(async (req) => {
       }),
     });
 
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error("OpenAI API error:", response.status, errorData);
+      throw new Error(`OpenAI API error: ${response.status} - ${errorData}`);
+    }
+
     const data = await response.json();
+    console.log("OpenAI API response received");
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error("Unexpected API response format:", data);
+      throw new Error('Unexpected API response format');
+    }
+    
     const analysisResult = data.choices[0].message.content;
+    console.log("Analysis complete:", analysisResult.substring(0, 100) + "...");
+    
+    // Simple logic to extract risk level
+    let riskLevel = 'low';
+    if (analysisResult.toLowerCase().includes('high risk')) {
+      riskLevel = 'high';
+    } else if (analysisResult.toLowerCase().includes('medium risk')) {
+      riskLevel = 'medium';
+    }
     
     return new Response(JSON.stringify({ 
       analysis: analysisResult,
-      // Simple logic to extract risk level
-      riskLevel: analysisResult.toLowerCase().includes('high risk') ? 'high' : 
-                analysisResult.toLowerCase().includes('medium risk') ? 'medium' : 'low'
+      riskLevel: riskLevel
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('Error in facial recognition function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      details: 'There was an error analyzing the image'
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

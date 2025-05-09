@@ -13,6 +13,7 @@ const FaceCheck = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<string | null>(null);
   const [riskLevel, setRiskLevel] = useState<'low' | 'medium' | 'high' | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,6 +41,7 @@ const FaceCheck = () => {
       // Reset previous analysis
       setAnalysisResult(null);
       setRiskLevel(null);
+      setErrorMessage(null);
     }
   };
 
@@ -47,27 +49,61 @@ const FaceCheck = () => {
     if (!selectedImage) return;
     
     setIsAnalyzing(true);
+    setErrorMessage(null);
     
     try {
+      console.log("Starting image analysis process");
       // Upload image to Supabase storage
       const fileName = `${Date.now()}-${selectedImage.name}`;
+      
+      // Create bucket if it doesn't exist
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const profileImagesBucket = buckets?.find(bucket => bucket.name === 'profile-images');
+      
+      if (!profileImagesBucket) {
+        console.log("Creating 'profile-images' bucket");
+        const { data, error } = await supabase.storage.createBucket('profile-images', {
+          public: true
+        });
+        
+        if (error) {
+          console.error("Error creating bucket:", error);
+          throw new Error(`Error creating storage bucket: ${error.message}`);
+        }
+      }
+      
+      console.log("Uploading image to Supabase Storage");
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('profile-images')
         .upload(`public/${fileName}`, selectedImage);
         
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        throw uploadError;
+      }
       
+      console.log("Image uploaded successfully, getting public URL");
       // Get public URL of the uploaded image
       const { data: { publicUrl } } = supabase.storage
         .from('profile-images')
         .getPublicUrl(`public/${fileName}`);
       
+      console.log("Public URL obtained, calling facial recognition function");
       // Call facial recognition edge function
       const { data, error } = await supabase.functions.invoke('facial-recognition', {
         body: { imageUrl: publicUrl },
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Function invocation error:", error);
+        throw new Error(`Error calling analysis function: ${error.message}`);
+      }
+      
+      console.log("Received facial recognition response:", data);
+      
+      if (data.error) {
+        throw new Error(`Analysis error: ${data.error}`);
+      }
       
       setAnalysisResult(data.analysis);
       setRiskLevel(data.riskLevel);
@@ -79,9 +115,10 @@ const FaceCheck = () => {
       });
     } catch (error) {
       console.error('Error analyzing image:', error);
+      setErrorMessage(error.message || "There was an error analyzing the image");
       toast({
         title: "Analysis failed",
-        description: "There was an error analyzing the image. Please try again.",
+        description: error.message || "There was an error analyzing the image. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -186,6 +223,13 @@ const FaceCheck = () => {
                 )}
               </Button>
             </div>
+            
+            {errorMessage && (
+              <div className="mt-4 bg-red-50 border border-red-100 p-4 rounded-lg">
+                <h3 className="text-sm font-medium text-red-800">Error</h3>
+                <p className="text-sm text-red-700 mt-1">{errorMessage}</p>
+              </div>
+            )}
             
             {analysisResult && (
               <div className="mt-8 border-t border-gray-200 pt-6">
