@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Navigation from '../components/Navigation';
 import Footer from '../components/Footer';
@@ -72,33 +71,35 @@ const FaceCheck = () => {
     try {
       console.log("Starting image analysis process");
       
-      // First, upload directly to temporary storage
-      const fileName = `temp-${Date.now()}-${selectedImage.name}`;
-      const formData = new FormData();
-      formData.append('file', selectedImage);
+      // First, upload to Supabase storage for permanent storage
+      const fileName = `analysis-${Date.now()}-${selectedImage.name.replace(/[^a-zA-Z0-9._-]/g, '')}`;
       
-      // Use a direct API endpoint to upload the file to a temporary location
-      const uploadResponse = await fetch('https://api.upload.io/v2/accounts/W142hfL/uploads/binary', {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Authorization': 'Bearer public_W142hfLEKC9xhSxoUGgvsmcDF7jN' // Public upload.io key
-        }
-      });
+      // Upload to profile-images bucket (which will be public)
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('profile-images')
+        .upload(fileName, selectedImage, {
+          cacheControl: '3600',
+          upsert: false
+        });
       
-      if (!uploadResponse.ok) {
-        throw new Error('Failed to upload image to temporary storage');
+      if (uploadError) {
+        console.error("Error uploading to Supabase storage:", uploadError);
+        throw new Error(`Failed to upload image: ${uploadError.message}`);
       }
       
-      const uploadResult = await uploadResponse.json();
-      const publicImageUrl = uploadResult.fileUrl;
+      console.log("Image uploaded to Supabase storage successfully");
       
-      console.log("Image uploaded to temporary storage, URL:", publicImageUrl);
-      console.log("Calling facial recognition function");
+      // Get the public URL of the uploaded image
+      const { data: { publicUrl } } = supabase.storage
+        .from('profile-images')
+        .getPublicUrl(fileName);
+      
+      console.log("Image public URL:", publicUrl);
+      console.log("Calling facial recognition function with URL:", publicUrl);
       
       // Call facial recognition edge function with the public URL
       const { data, error } = await supabase.functions.invoke('facial-recognition', {
-        body: { imageUrl: publicImageUrl },
+        body: { imageUrl: publicUrl },
       });
       
       if (error) {
