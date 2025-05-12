@@ -26,6 +26,46 @@ serve(async (req) => {
     if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error('Supabase credentials are not set');
     }
+    
+    // Create Supabase client with service role key for admin access
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Make sure storage buckets exist
+    try {
+      const { data: buckets } = await supabase.storage.listBuckets();
+      
+      // Check if vault-files bucket exists
+      const vaultBucket = buckets?.find(bucket => bucket.name === 'vault-files');
+      if (!vaultBucket) {
+        console.log("Creating vault-files bucket");
+        const { error } = await supabase.storage.createBucket('vault-files', {
+          public: false,
+          fileSizeLimit: 10485760, // 10MB file size limit
+        });
+        if (error) {
+          console.error("Error creating vault-files bucket:", error);
+        } else {
+          console.log("vault-files bucket created successfully");
+        }
+      }
+      
+      // Check if profile-images bucket exists
+      const profileBucket = buckets?.find(bucket => bucket.name === 'profile-images');
+      if (!profileBucket) {
+        console.log("Creating profile-images bucket");
+        const { error } = await supabase.storage.createBucket('profile-images', {
+          public: true, // Make this bucket public for profile images
+          fileSizeLimit: 5242880, // 5MB file size limit
+        });
+        if (error) {
+          console.error("Error creating profile-images bucket:", error);
+        } else {
+          console.log("profile-images bucket created successfully");
+        }
+      }
+    } catch (error) {
+      console.error("Error checking/creating buckets:", error);
+    }
 
     const { imageUrl } = await req.json();
     console.log("Received image URL for analysis:", imageUrl);
