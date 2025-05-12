@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Navigation from '../components/Navigation';
 import Footer from '../components/Footer';
@@ -108,6 +109,20 @@ const FaceCheck = () => {
       }
       
       console.log("Received facial recognition response:", data);
+      
+      // Handle quota error specially (we return status 200 but with error message)
+      if (data.error && data.error.includes("quota")) {
+        setAnalysisResult("The image analysis service is currently unavailable due to API usage limitations. This is a temporary issue and the service should be restored shortly.");
+        setRiskLevel("medium");
+        setErrorMessage("API quota exceeded. Please try again later.");
+        
+        toast({
+          title: "Service temporarily unavailable",
+          description: "The AI analysis service has reached its usage limit. Please try again later.",
+          variant: "destructive",
+        });
+        return;
+      }
       
       if (data.error) {
         throw new Error(`Analysis error: ${data.error}`);

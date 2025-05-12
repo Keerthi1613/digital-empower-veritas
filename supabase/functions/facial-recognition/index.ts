@@ -75,69 +75,101 @@ serve(async (req) => {
     }
     
     console.log("Calling OpenAI API for image analysis");
-    // Call OpenAI API to analyze the image
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          { 
-            role: 'system', 
-            content: 'You are an AI assistant that specializes in analyzing profile images for potential scammer indicators. You should look for signs of AI generation, stock photos, or other red flags common in fake profiles. Provide a detailed analysis and risk score (low, medium, high).'
-          },
-          { 
-            role: 'user', 
-            content: [
-              { 
-                type: "text", 
-                text: "Analyze this profile image for signs it might be used by a scammer or is AI-generated:" 
-              },
-              { 
-                type: "image_url", 
-                image_url: { url: imageUrl } 
-              }
-            ]
-          }
-        ],
-        temperature: 0.5,
-      }),
-    });
+    
+    try {
+      // Call OpenAI API to analyze the image
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            { 
+              role: 'system', 
+              content: 'You are an AI assistant that specializes in analyzing profile images for potential scammer indicators. You should look for signs of AI generation, stock photos, or other red flags common in fake profiles. Provide a detailed analysis and risk score (low, medium, high).'
+            },
+            { 
+              role: 'user', 
+              content: [
+                { 
+                  type: "text", 
+                  text: "Analyze this profile image for signs it might be used by a scammer or is AI-generated:" 
+                },
+                { 
+                  type: "image_url", 
+                  image_url: { url: imageUrl } 
+                }
+              ]
+            }
+          ],
+          temperature: 0.5,
+        }),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error("OpenAI API error:", response.status, errorData);
-      throw new Error(`OpenAI API error: ${response.status} - ${errorData}`);
-    }
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error("OpenAI API error:", response.status, errorData);
+        
+        // Check for quota exceeded error
+        if (errorData.includes("quota") || errorData.includes("billing") || response.status === 429) {
+          return new Response(JSON.stringify({ 
+            error: "OpenAI API quota exceeded. Please try again later or contact the administrator to update the API key.",
+            analysis: "Unable to analyze image due to API quota limitations. The service is temporarily unavailable.",
+            riskLevel: "medium" // Default to medium when we can't analyze
+          }), {
+            status: 200, // Return 200 to the client so the app can handle this gracefully
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
+        throw new Error(`OpenAI API error: ${response.status} - ${errorData}`);
+      }
 
-    const data = await response.json();
-    console.log("OpenAI API response received");
-    
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      console.error("Unexpected API response format:", data);
-      throw new Error('Unexpected API response format');
+      const data = await response.json();
+      console.log("OpenAI API response received");
+      
+      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        console.error("Unexpected API response format:", data);
+        throw new Error('Unexpected API response format');
+      }
+      
+      const analysisResult = data.choices[0].message.content;
+      console.log("Analysis complete:", analysisResult.substring(0, 100) + "...");
+      
+      // Simple logic to extract risk level
+      let riskLevel = 'low';
+      if (analysisResult.toLowerCase().includes('high risk')) {
+        riskLevel = 'high';
+      } else if (analysisResult.toLowerCase().includes('medium risk')) {
+        riskLevel = 'medium';
+      }
+      
+      return new Response(JSON.stringify({ 
+        analysis: analysisResult,
+        riskLevel: riskLevel
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } catch (openAIError) {
+      console.error('Error with OpenAI API:', openAIError);
+      
+      // Handle API key errors gracefully
+      if (openAIError.message.includes('quota') || openAIError.message.includes('billing')) {
+        return new Response(JSON.stringify({ 
+          error: "OpenAI API quota exceeded. Please try again later or contact the administrator to update the API key.",
+          analysis: "Unable to analyze image due to API quota limitations. The service is temporarily unavailable.",
+          riskLevel: "medium" // Default to medium when we can't analyze
+        }), {
+          status: 200, // Return 200 to the client so the app can handle this gracefully
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      throw openAIError; // Re-throw for general error handling
     }
-    
-    const analysisResult = data.choices[0].message.content;
-    console.log("Analysis complete:", analysisResult.substring(0, 100) + "...");
-    
-    // Simple logic to extract risk level
-    let riskLevel = 'low';
-    if (analysisResult.toLowerCase().includes('high risk')) {
-      riskLevel = 'high';
-    } else if (analysisResult.toLowerCase().includes('medium risk')) {
-      riskLevel = 'medium';
-    }
-    
-    return new Response(JSON.stringify({ 
-      analysis: analysisResult,
-      riskLevel: riskLevel
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
   } catch (error) {
     console.error('Error in facial recognition function:', error);
     return new Response(JSON.stringify({ 
