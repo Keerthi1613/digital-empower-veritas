@@ -77,7 +77,7 @@ serve(async (req) => {
     console.log("Calling OpenAI API for image analysis");
     
     try {
-      // Call OpenAI API to analyze the image
+      // Call OpenAI API to analyze the image with improved prompt
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -89,14 +89,14 @@ serve(async (req) => {
           messages: [
             { 
               role: 'system', 
-              content: 'You are an AI assistant that specializes in analyzing profile images for potential scammer indicators. You should look for signs of AI generation, stock photos, or other red flags common in fake profiles. Provide a detailed analysis and risk score (low, medium, high).'
+              content: 'You are an AI assistant that specializes in analyzing profile images for potential scammer indicators. Be careful not to falsely classify real photographs as fake. Look for very specific signs of AI generation such as unusual symmetry, unnatural eye positions, irregular backgrounds, or other definitive markers. Consider lighting, shadows, and detailed elements like hair, earrings, and skin textures. Only classify as high risk if you have clear evidence of AI generation. If unsure, classify as low risk. For each analysis, provide specific evidence for your conclusion and a risk score (low, medium, high).'
             },
             { 
               role: 'user', 
               content: [
                 { 
                   type: "text", 
-                  text: "Analyze this profile image for signs it might be used by a scammer or is AI-generated:" 
+                  text: "Analyze this profile image carefully to determine if it's an authentic photograph or AI-generated. Look for specific evidence and avoid false positives." 
                 },
                 { 
                   type: "image_url", 
@@ -105,7 +105,7 @@ serve(async (req) => {
               ]
             }
           ],
-          temperature: 0.5,
+          temperature: 0.3, // Lower temperature for more consistent results
         }),
       });
 
@@ -139,12 +139,33 @@ serve(async (req) => {
       const analysisResult = data.choices[0].message.content;
       console.log("Analysis complete:", analysisResult.substring(0, 100) + "...");
       
-      // Simple logic to extract risk level
+      // More nuanced logic to extract risk level
       let riskLevel = 'low';
-      if (analysisResult.toLowerCase().includes('high risk')) {
+      const lowerCaseAnalysis = analysisResult.toLowerCase();
+      
+      if (lowerCaseAnalysis.includes('high risk') || 
+          (lowerCaseAnalysis.includes('high') && lowerCaseAnalysis.includes('risk'))) {
         riskLevel = 'high';
-      } else if (analysisResult.toLowerCase().includes('medium risk')) {
+      } else if (lowerCaseAnalysis.includes('medium risk') || 
+                (lowerCaseAnalysis.includes('medium') && lowerCaseAnalysis.includes('risk'))) {
         riskLevel = 'medium';
+      }
+      
+      // Double-check classification - if analysis mentions "real", "authentic", "genuine" but risk is high, adjust to medium
+      if (riskLevel === 'high' && 
+          (lowerCaseAnalysis.includes('authentic photograph') || 
+           lowerCaseAnalysis.includes('real person') || 
+           lowerCaseAnalysis.includes('genuine photo'))) {
+        riskLevel = 'medium';
+      }
+      
+      // If analysis is clearly stating it's authentic with confidence, ensure it's low risk
+      if ((lowerCaseAnalysis.includes('confident this is a real') || 
+           lowerCaseAnalysis.includes('clearly authentic') ||
+           lowerCaseAnalysis.includes('definitely authentic') ||
+           lowerCaseAnalysis.includes('genuine photograph')) && 
+          riskLevel !== 'low') {
+        riskLevel = 'low';
       }
       
       return new Response(JSON.stringify({ 
