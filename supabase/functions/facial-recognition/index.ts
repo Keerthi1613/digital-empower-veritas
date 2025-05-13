@@ -77,7 +77,7 @@ serve(async (req) => {
     console.log("Calling OpenAI API for image analysis");
     
     try {
-      // Call OpenAI API to analyze the image with improved prompt
+      // Call OpenAI API to analyze the image with enhanced expert prompt
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -89,14 +89,35 @@ serve(async (req) => {
           messages: [
             { 
               role: 'system', 
-              content: 'You are an AI assistant that specializes in analyzing profile images for potential scammer indicators. Be careful not to falsely classify real photographs as fake. Look for very specific signs of AI generation such as unusual symmetry, unnatural eye positions, irregular backgrounds, or other definitive markers. Consider lighting, shadows, and detailed elements like hair, earrings, and skin textures. Only classify as high risk if you have clear evidence of AI generation. If unsure, classify as low risk. For each analysis, provide specific evidence for your conclusion and a risk score (low, medium, high).'
+              content: `You are an expert forensic image analyst specializing in detecting AI-generated images. 
+              Your task is to analyze profile photos with extreme precision, looking ONLY for definitive evidence of AI generation.
+              
+              IMPORTANT: Default to assuming images are authentic unless there is CLEAR evidence otherwise.
+              
+              Look for these specific AI indicators:
+              1. Unnatural eye asymmetry or iris inconsistencies
+              2. Bizarre teeth, finger or ear formations
+              3. Impossible physics or lighting inconsistencies
+              4. Background distortions or impossible architecture
+              5. Unusual skin textures or hair patterns that defy natural growth
+              
+              Never classify based on:
+              - Image quality (real photos can be low quality)
+              - Normal photo editing (filters, lighting adjustments, etc.)
+              - Normal asymmetry found in real faces
+              - Cultural unfamiliarity or unusual but possible features
+              
+              Report format:
+              - Analysis: Detailed examination highlighting specific observations
+              - Risk Level: Low (authentic), Medium (suspicious but uncertain), High (clearly AI-generated)
+              - Only assign "High" risk with overwhelming evidence`
             },
             { 
               role: 'user', 
               content: [
                 { 
                   type: "text", 
-                  text: "Analyze this profile image carefully to determine if it's an authentic photograph or AI-generated. Look for specific evidence and avoid false positives." 
+                  text: "Analyze this profile image carefully. Is it an authentic photograph or AI-generated? Provide specific visual evidence and avoid false positives. Most photos people upload are authentic." 
                 },
                 { 
                   type: "image_url", 
@@ -105,7 +126,7 @@ serve(async (req) => {
               ]
             }
           ],
-          temperature: 0.3, // Lower temperature for more consistent results
+          temperature: 0.2, // Even lower temperature for more consistent, conservative results
         }),
       });
 
@@ -139,32 +160,40 @@ serve(async (req) => {
       const analysisResult = data.choices[0].message.content;
       console.log("Analysis complete:", analysisResult.substring(0, 100) + "...");
       
-      // More nuanced logic to extract risk level
-      let riskLevel = 'low';
+      // Enhanced classification logic with strong bias toward authentic classification
+      let riskLevel = 'low'; // Default to low - assume real unless proven otherwise
       const lowerCaseAnalysis = analysisResult.toLowerCase();
       
-      if (lowerCaseAnalysis.includes('high risk') || 
-          (lowerCaseAnalysis.includes('high') && lowerCaseAnalysis.includes('risk'))) {
+      // Only flag as high risk if explicitly mentioned with strong evidence
+      if (lowerCaseAnalysis.includes('high risk') && 
+          (lowerCaseAnalysis.includes('clearly ai-generated') || 
+           lowerCaseAnalysis.includes('definitely synthetic') || 
+           lowerCaseAnalysis.includes('unmistakable signs'))) {
         riskLevel = 'high';
-      } else if (lowerCaseAnalysis.includes('medium risk') || 
-                (lowerCaseAnalysis.includes('medium') && lowerCaseAnalysis.includes('risk'))) {
+      } 
+      // Only flag medium if there are specific suspicious elements noted
+      else if (lowerCaseAnalysis.includes('medium risk') && 
+              (lowerCaseAnalysis.includes('suspicious elements') || 
+               lowerCaseAnalysis.includes('some indicators') ||
+               lowerCaseAnalysis.includes('possible ai artifacts'))) {
         riskLevel = 'medium';
       }
       
-      // Double-check classification - if analysis mentions "real", "authentic", "genuine" but risk is high, adjust to medium
-      if (riskLevel === 'high' && 
-          (lowerCaseAnalysis.includes('authentic photograph') || 
-           lowerCaseAnalysis.includes('real person') || 
-           lowerCaseAnalysis.includes('genuine photo'))) {
-        riskLevel = 'medium';
+      // Strong override checks for authentic images
+      if ((riskLevel !== 'low') && 
+          (lowerCaseAnalysis.includes('appears authentic') || 
+           lowerCaseAnalysis.includes('likely real person') || 
+           lowerCaseAnalysis.includes('genuine portrait') ||
+           lowerCaseAnalysis.includes('natural facial features') ||
+           lowerCaseAnalysis.includes('no clear indicators of ai'))) {
+        riskLevel = 'low';
       }
       
-      // If analysis is clearly stating it's authentic with confidence, ensure it's low risk
-      if ((lowerCaseAnalysis.includes('confident this is a real') || 
-           lowerCaseAnalysis.includes('clearly authentic') ||
-           lowerCaseAnalysis.includes('definitely authentic') ||
-           lowerCaseAnalysis.includes('genuine photograph')) && 
-          riskLevel !== 'low') {
+      // Final confidence check - if uncertainty is expressed, lean toward "low"
+      if (riskLevel !== 'low' && 
+          (lowerCaseAnalysis.includes('cannot be certain') ||
+           lowerCaseAnalysis.includes('difficult to determine') ||
+           lowerCaseAnalysis.includes('not conclusive'))) {
         riskLevel = 'low';
       }
       

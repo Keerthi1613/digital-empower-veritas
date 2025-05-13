@@ -2,11 +2,15 @@
 import React, { useState } from 'react';
 import Navigation from '../components/Navigation';
 import Footer from '../components/Footer';
-import { Upload, Shield, AlertTriangle, CheckCircle, Lock } from 'lucide-react';
+import { Upload, Shield, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 
 const ProfileGuard = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<{
@@ -30,43 +34,19 @@ const ProfileGuard = () => {
     }
   };
 
+  // This page is now deprecated - redirect users to FaceCheck
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!file) {
-      toast({
-        title: "Error",
-        description: "Please select an image to scan.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setUploading(true);
-
-    // Simulate API call to scan image
-    setTimeout(() => {
-      // This is a simulation, in a real app you'd call your Flask backend
-      const randomFake = Math.random() > 0.5;
-      const randomConfidence = 70 + Math.floor(Math.random() * 25);
-      
-      setResult({
-        isFake: randomFake,
-        confidence: randomConfidence,
-        details: randomFake 
-          ? "This image shows signs of AI generation using GAN technology. The consistent symmetry and unnatural eye positions suggest a deepfake." 
-          : "No clear indicators of AI manipulation detected. The image appears to be an authentic photograph."
-      });
-      
-      setUploading(false);
-
-      toast({
-        title: randomFake ? "Warning: Potential fake detected" : "Analysis complete",
-        description: randomFake 
-          ? `This image is likely AI-generated (${randomConfidence}% confidence)` 
-          : "This image appears to be authentic",
-        variant: randomFake ? "destructive" : "default",
-      });
-    }, 2500);
+    
+    // Show a toast informing users
+    toast({
+      title: "Redirecting to new scanner",
+      description: "We've upgraded our ProfileGuard Scanner with more advanced technology!",
+      variant: "default",
+    });
+    
+    // Redirect to the new FaceCheck page
+    navigate('/face-check');
   };
 
   return (
@@ -77,9 +57,16 @@ const ProfileGuard = () => {
         <div className="veritas-container">
           <div className="max-w-4xl mx-auto">
             <h1 className="page-title">ProfileGuard Scanner</h1>
-            <p className="text-center text-gray-600 mb-8">
+            <p className="text-center text-gray-600 mb-2">
               Upload a profile image to detect if it's an AI-generated fake (deepfake) or an authentic photograph.
             </p>
+            
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-yellow-800 mb-8 text-center">
+              <p className="font-medium">We've upgraded our scanner!</p>
+              <p className="text-sm mt-1">
+                Try our new and improved <a href="/face-check" className="underline font-semibold">FaceCheck Scanner</a> with enhanced AI detection capabilities.
+              </p>
+            </div>
 
             <div className="mb-12">
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -120,67 +107,19 @@ const ProfileGuard = () => {
                       </div>
                     )}
                     
-                    <button 
-                      type="submit" 
-                      className="btn-primary w-full max-w-md"
-                      disabled={uploading || !file}
+                    <Button
+                      type="submit"
+                      className="w-full max-w-md"
+                      variant="default"
+                      disabled={!file}
                     >
-                      {uploading ? "Analyzing..." : "Scan Image"}
-                    </button>
+                      Try Our New Scanner
+                    </Button>
                   </div>
                 </div>
               </form>
             </div>
 
-            {result.isFake !== null && (
-              <div className={`rounded-xl border p-6 shadow-md ${
-                result.isFake ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'
-              }`}>
-                <div className="flex items-start">
-                  <div className={`rounded-full p-2 mr-4 ${
-                    result.isFake ? 'bg-red-100' : 'bg-green-100'
-                  }`}>
-                    {result.isFake ? (
-                      <AlertTriangle className="h-6 w-6 text-red-500" />
-                    ) : (
-                      <CheckCircle className="h-6 w-6 text-green-500" />
-                    )}
-                  </div>
-                  <div>
-                    <h3 className={`text-xl font-semibold mb-2 ${
-                      result.isFake ? 'text-red-700' : 'text-green-700'
-                    }`}>
-                      {result.isFake ? 'Likely AI-Generated Fake' : 'Likely Authentic Image'}
-                    </h3>
-                    <div className="mb-4">
-                      <div className="text-sm text-gray-600">Confidence Level</div>
-                      <div className="w-full bg-gray-200 rounded-full h-2.5 mt-1">
-                        <div 
-                          className={`h-2.5 rounded-full ${result.isFake ? 'bg-red-500' : 'bg-green-500'}`} 
-                          style={{width: `${result.confidence}%`}}
-                        ></div>
-                      </div>
-                      <div className="text-right text-sm text-gray-600 mt-1">{result.confidence}%</div>
-                    </div>
-                    <p className="text-gray-700 mb-4">{result.details}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {result.isFake ? (
-                        <>
-                          <button className="btn-secondary text-sm py-1.5">Report This Profile</button>
-                          <button className="btn-outline text-sm py-1.5">Learn How We Detected This</button>
-                        </>
-                      ) : (
-                        <>
-                          <button className="btn-outline text-sm py-1.5">Save Analysis Result</button>
-                          <button className="btn-outline text-sm py-1.5">Learn More</button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
             <div className="mt-16 bg-veritas-lightPurple rounded-xl p-6">
               <h2 className="text-xl font-semibold text-center text-veritas-purple mb-4">How ProfileGuard Works</h2>
               
@@ -208,7 +147,7 @@ const ProfileGuard = () => {
                 <div className="bg-white rounded-lg p-4">
                   <div className="flex justify-center mb-4">
                     <div className="bg-veritas-purple/10 rounded-full p-3">
-                      <Lock className="h-5 w-5 text-veritas-purple" />
+                      <CheckCircle className="h-5 w-5 text-veritas-purple" />
                     </div>
                   </div>
                   <h3 className="text-lg font-medium text-center mb-2">3. Results</h3>
