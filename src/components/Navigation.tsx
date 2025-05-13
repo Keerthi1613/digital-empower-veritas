@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Shield, Menu, X, MessageCircle, Users, Lock, LogOut, LogIn } from 'lucide-react';
+import { Shield, Menu, X, MessageCircle, Users, Lock, LogOut, LogIn, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -61,6 +60,7 @@ const Navigation = () => {
             <Link to="/chatbot" className="text-gray-700 hover:text-veritas-purple transition-colors">Safety Assistant</Link>
             <Link to="/face-check" className="text-gray-700 hover:text-veritas-purple transition-colors">Image Check</Link>
             <Link to="/vault" className="text-gray-700 hover:text-veritas-purple transition-colors">Secure Vault</Link>
+            <Link to="/analyzer" className="text-gray-700 hover:text-veritas-purple transition-colors">Safety Analyzer</Link>
             <Link to="/report" className="text-gray-700 hover:text-veritas-purple transition-colors">Report</Link>
             
             {user ? (
@@ -107,6 +107,9 @@ const Navigation = () => {
             </Link>
             <Link to="/vault" className="text-gray-700 hover:text-veritas-purple py-2 transition-colors" onClick={toggleMenu}>
               <Lock className="h-4 w-4 inline mr-1" /> Secure Vault
+            </Link>
+            <Link to="/analyzer" className="text-gray-700 hover:text-veritas-purple py-2 transition-colors" onClick={toggleMenu}>
+              <AlertTriangle className="h-4 w-4 inline mr-1" /> Safety Analyzer
             </Link>
             <Link to="/report" className="text-gray-700 hover:text-veritas-purple py-2 transition-colors" onClick={toggleMenu}>Report</Link>
             <Link to="/evidence" className="text-gray-700 hover:text-veritas-purple py-2 transition-colors" onClick={toggleMenu}>Evidence</Link>
