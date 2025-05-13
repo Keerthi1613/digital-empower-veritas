@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +15,7 @@ import FaceCheck from "./pages/FaceCheck";
 import EmergencyVault from "./pages/EmergencyVault";
 import Login from "./pages/Login";
 import SignIn from "./pages/SignIn";
+import SafetyAnalyzer from "./pages/SafetyAnalyzer";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -74,6 +74,7 @@ const App = () => {
             <Route path="/chatbot" element={isLoggedIn ? <Chatbot /> : <Navigate to="/signin" />} />
             <Route path="/face-check" element={isLoggedIn ? <FaceCheck /> : <Navigate to="/signin" />} />
             <Route path="/vault" element={isLoggedIn ? <EmergencyVault /> : <Navigate to="/signin" />} />
+            <Route path="/analyzer" element={isLoggedIn ? <SafetyAnalyzer /> : <Navigate to="/signin" />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
