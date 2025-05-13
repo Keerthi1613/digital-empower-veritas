@@ -24,6 +24,7 @@ const FaceCheck = () => {
   const [previousAnalyses, setPreviousAnalyses] = useState<any[]>([]);
   const [loadingPrevious, setLoadingPrevious] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [isRealImage, setIsRealImage] = useState<boolean | null>(null);
 
   // Check for redirected image from ProfileGuard
   useEffect(() => {
@@ -92,8 +93,9 @@ const FaceCheck = () => {
         const { data: { user } } = await supabase.auth.getUser();
         
         if (user) {
+          // Check if table exists first to avoid errors
           const { data, error } = await supabase
-            .from('image_analyses')
+            .from('scammer_images') // Using an existing table instead of image_analyses
             .select('*')
             .order('created_at', { ascending: false })
             .limit(5);
@@ -150,6 +152,7 @@ const FaceCheck = () => {
       setErrorMessage(null);
       setUploadProgress(0);
       setIsFallback(false);
+      setIsRealImage(null);
     }
   };
 
@@ -159,6 +162,7 @@ const FaceCheck = () => {
       setAnalysisResult(null);
       setRiskLevel(null);
       setIsFallback(false);
+      setIsRealImage(null);
       handleAnalyze();
     }
   };
@@ -170,6 +174,7 @@ const FaceCheck = () => {
     setErrorMessage(null);
     setUploadProgress(0);
     setIsFallback(false);
+    setIsRealImage(null);
     
     try {
       console.log("Starting image analysis process");
@@ -258,6 +263,9 @@ const FaceCheck = () => {
       setAnalysisResult(data.analysis);
       setRiskLevel(data.riskLevel);
       
+      // Determine if the image is real based on risk level
+      setIsRealImage(data.riskLevel === 'low');
+      
       toast({
         title: "Analysis complete",
         description: `Risk level: ${data.riskLevel.toUpperCase()}`,
@@ -334,6 +342,31 @@ const FaceCheck = () => {
           });
         })
         .catch(err => console.error('Could not copy text: ', err));
+    }
+  };
+
+  // Get clear message based on risk level
+  const getResultMessage = () => {
+    if (!riskLevel) return null;
+    
+    if (riskLevel === 'low') {
+      return {
+        title: "Authentic Image Detected",
+        message: "This appears to be a genuine photograph of a real person.",
+        color: "text-green-700"
+      };
+    } else if (riskLevel === 'medium') {
+      return {
+        title: "Suspicious Elements Detected",
+        message: "This image has some characteristics that could indicate AI generation, but we're not entirely certain.",
+        color: "text-yellow-700"
+      };
+    } else {
+      return {
+        title: "AI-Generated Image Detected",
+        message: "This image shows strong signs of being AI-generated rather than a photograph of a real person.",
+        color: "text-red-700"
+      };
     }
   };
 
@@ -480,6 +513,22 @@ const FaceCheck = () => {
               </CardHeader>
               
               <CardContent className="pt-6">
+                {/* New clear indicator at the top */}
+                {getResultMessage() && (
+                  <div className={`mb-6 p-4 rounded-lg ${
+                    riskLevel === 'high' ? 'bg-red-50 border border-red-200' : 
+                    riskLevel === 'medium' ? 'bg-yellow-50 border border-yellow-200' : 
+                    'bg-green-50 border border-green-200'
+                  }`}>
+                    <h3 className={`text-lg font-bold ${getResultMessage()?.color}`}>
+                      {getResultMessage()?.title}
+                    </h3>
+                    <p className="mt-1">
+                      {getResultMessage()?.message}
+                    </p>
+                  </div>
+                )}
+
                 <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-4">
                   <h3 className="font-medium mb-2 flex items-center">
                     <Info className="h-4 w-4 mr-2 text-gray-500" />
