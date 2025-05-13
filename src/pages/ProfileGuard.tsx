@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Navigation from '../components/Navigation';
 import Footer from '../components/Footer';
@@ -63,7 +62,7 @@ const ProfileGuard = () => {
               Upload a profile image to detect if it's an AI-generated fake (deepfake) or an authentic photograph.
             </p>
             
-            <Alert variant="warning" className="bg-yellow-50 border-yellow-200 text-yellow-800 mb-8">
+            <Alert variant="default" className="bg-yellow-50 border-yellow-200 text-yellow-800 mb-8">
               <AlertDescription className="text-center">
                 <p className="font-medium">We've upgraded our scanner!</p>
                 <p className="text-sm mt-1">
