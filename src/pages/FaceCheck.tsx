@@ -4,11 +4,12 @@ import Navigation from '../components/Navigation';
 import Footer from '../components/Footer';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Upload, AlertCircle, CheckCircle, Loader2, Image, Info, Shield } from 'lucide-react';
+import { Upload, AlertCircle, CheckCircle, Loader2, Image, Info, Shield, Download, Share2 } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const FaceCheck = () => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -18,10 +19,55 @@ const FaceCheck = () => {
   const [riskLevel, setRiskLevel] = useState<'low' | 'medium' | 'high' | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isFallback, setIsFallback] = useState(false);
   const { toast } = useToast();
+  const [previousAnalyses, setPreviousAnalyses] = useState<any[]>([]);
+  const [loadingPrevious, setLoadingPrevious] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
-  // Check if bucket exists and create it if it doesn't
+  // Check for redirected image from ProfileGuard
   useEffect(() => {
+    const redirectKey = sessionStorage.getItem('profile_guard_redirect');
+    if (redirectKey) {
+      try {
+        const fileUrl = sessionStorage.getItem(redirectKey);
+        const fileName = sessionStorage.getItem(`${redirectKey}_name`);
+        const fileSize = sessionStorage.getItem(`${redirectKey}_size`);
+        
+        if (fileUrl && fileName && fileSize) {
+          // Convert the stored data URL to a File object
+          fetch(fileUrl)
+            .then(res => res.blob())
+            .then(blob => {
+              const file = new File([blob], fileName, {
+                type: blob.type,
+                lastModified: Date.now()
+              });
+              setSelectedImage(file);
+              setPreviewUrl(fileUrl);
+              
+              // Optional: Auto-analyze the redirected image
+              toast({
+                title: "Image transferred",
+                description: "Your image has been transferred from ProfileGuard and is ready for analysis."
+              });
+            })
+            .catch(err => {
+              console.error("Error loading redirected image:", err);
+            });
+        }
+        
+        // Clean up session storage
+        sessionStorage.removeItem('profile_guard_redirect');
+        sessionStorage.removeItem(redirectKey);
+        sessionStorage.removeItem(`${redirectKey}_name`);
+        sessionStorage.removeItem(`${redirectKey}_size`);
+      } catch (error) {
+        console.error("Error processing redirected image:", error);
+      }
+    }
+    
+    // Check if bucket exists and create it if it doesn't
     const setupBucket = async () => {
       try {
         const { data: buckets } = await supabase.storage.listBuckets();
@@ -36,6 +82,33 @@ const FaceCheck = () => {
     };
     
     setupBucket();
+  }, [toast]);
+
+  // Load previous analyses if user is authenticated
+  useEffect(() => {
+    const loadPreviousAnalyses = async () => {
+      try {
+        setLoadingPrevious(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          const { data, error } = await supabase
+            .from('image_analyses')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(5);
+            
+          if (error) throw error;
+          if (data) setPreviousAnalyses(data);
+        }
+      } catch (error) {
+        console.error("Error loading previous analyses:", error);
+      } finally {
+        setLoadingPrevious(false);
+      }
+    };
+    
+    loadPreviousAnalyses();
   }, []);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,6 +149,17 @@ const FaceCheck = () => {
       setRiskLevel(null);
       setErrorMessage(null);
       setUploadProgress(0);
+      setIsFallback(false);
+    }
+  };
+
+  const handleRetry = () => {
+    if (selectedImage) {
+      setErrorMessage(null);
+      setAnalysisResult(null);
+      setRiskLevel(null);
+      setIsFallback(false);
+      handleAnalyze();
     }
   };
 
@@ -85,6 +169,7 @@ const FaceCheck = () => {
     setIsAnalyzing(true);
     setErrorMessage(null);
     setUploadProgress(0);
+    setIsFallback(false);
     
     try {
       console.log("Starting image analysis process");
@@ -93,16 +178,18 @@ const FaceCheck = () => {
         description: "Uploading and preparing your image...",
       });
       
-      // Begin simulated upload progress
+      // Begin progress simulation with variable speed
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
-          if (prev >= 95) {
+          // Slow down progress as it approaches 90%
+          const increment = prev < 30 ? 5 : prev < 60 ? 3 : prev < 80 ? 2 : 1;
+          if (prev >= 90) {
             clearInterval(progressInterval);
             return prev;
           }
-          return prev + 5;
+          return Math.min(prev + increment, 90);
         });
-      }, 300);
+      }, 250);
       
       // First, upload to Supabase storage for permanent storage
       const fileName = `analysis-${Date.now()}-${selectedImage.name.replace(/[^a-zA-Z0-9._-]/g, '')}`;
@@ -120,7 +207,6 @@ const FaceCheck = () => {
         throw new Error(`Failed to upload image: ${uploadError.message}`);
       }
       
-      setUploadProgress(100);
       console.log("Image uploaded to Supabase storage successfully");
       
       // Get the public URL of the uploaded image
@@ -139,7 +225,8 @@ const FaceCheck = () => {
         body: { imageUrl: publicUrl },
       });
       
-      // Clear the interval if it hasn't been cleared yet
+      // Set progress to 100% when analysis is complete
+      setUploadProgress(100);
       clearInterval(progressInterval);
       
       if (error) {
@@ -149,22 +236,23 @@ const FaceCheck = () => {
       
       console.log("Received facial recognition response:", data);
       
-      // Handle quota error specially (we return status 200 but with error message)
-      if (data.error && data.error.includes("quota")) {
-        setAnalysisResult("The image analysis service is currently unavailable due to API usage limitations. This is a temporary issue and the service should be restored shortly.");
-        setRiskLevel("medium");
-        setErrorMessage("API quota exceeded. Please try again later.");
-        
+      // Check if we're using fallback analysis
+      if (data.isFallback) {
+        setIsFallback(true);
         toast({
-          title: "Service temporarily unavailable",
-          description: "The AI analysis service has reached its usage limit. Please try again later.",
-          variant: "destructive",
+          title: "Using Limited Analysis",
+          description: "Due to high demand, we're providing a limited analysis. Full service will resume shortly.",
+          variant: "default",
         });
-        return;
       }
       
       if (data.error) {
-        throw new Error(`Analysis error: ${data.error}`);
+        setErrorMessage(data.error);
+        toast({
+          title: "Analysis issue",
+          description: data.error,
+          variant: "destructive",
+        });
       }
       
       setAnalysisResult(data.analysis);
@@ -175,6 +263,18 @@ const FaceCheck = () => {
         description: `Risk level: ${data.riskLevel.toUpperCase()}`,
         variant: data.riskLevel === 'high' ? "destructive" : "default",
       });
+      
+      // Add to previous analyses in UI (optimistic update)
+      const newAnalysis = {
+        id: `temp-${Date.now()}`,
+        image_url: publicUrl,
+        risk_level: data.riskLevel,
+        analysis: data.analysis,
+        created_at: new Date().toISOString()
+      };
+      
+      setPreviousAnalyses(prev => [newAnalysis, ...prev.slice(0, 4)]);
+      
     } catch (error) {
       console.error('Error analyzing image:', error);
       setErrorMessage(error.message || "There was an error analyzing the image");
@@ -209,6 +309,32 @@ const FaceCheck = () => {
         {riskLevel.toUpperCase()} RISK
       </div>
     );
+  };
+
+  const handleShareResults = () => {
+    // Generate shareable text based on analysis
+    const shareText = `I checked an image with ProfileGuard and it was classified as ${riskLevel?.toUpperCase()} RISK.`;
+    
+    // Check if the Web Share API is available
+    if (navigator.share) {
+      navigator.share({
+        title: 'ProfileGuard Image Analysis',
+        text: shareText,
+        // url: window.location.href,
+      })
+      .then(() => console.log('Shared successfully'))
+      .catch((error) => console.error('Error sharing:', error));
+    } else {
+      // Fallback - copy to clipboard
+      navigator.clipboard.writeText(shareText)
+        .then(() => {
+          toast({
+            title: "Copied to clipboard",
+            description: "Result summary copied to clipboard for sharing",
+          });
+        })
+        .catch(err => console.error('Could not copy text: ', err));
+    }
   };
 
   return (
@@ -276,7 +402,7 @@ const FaceCheck = () => {
                 {isAnalyzing && (
                   <div className="mt-6">
                     <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
-                      <span>Analyzing...</span>
+                      <span>Analyzing{uploadProgress < 100 ? '...' : ' complete!'}</span>
                       <span>{uploadProgress}%</span>
                     </div>
                     <Progress value={uploadProgress} className="h-2" />
@@ -298,7 +424,7 @@ const FaceCheck = () => {
                     ) : (
                       <>
                         <Shield className="h-4 w-4 mr-2" />
-                        Analyze Image
+                        {analysisResult ? "Analyze Again" : "Analyze Image"}
                       </>
                     )}
                   </Button>
@@ -308,7 +434,12 @@ const FaceCheck = () => {
                   <Alert variant="destructive" className="mt-6">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Error</AlertTitle>
-                    <AlertDescription>{errorMessage}</AlertDescription>
+                    <AlertDescription className="space-y-2">
+                      <p>{errorMessage}</p>
+                      <Button variant="outline" size="sm" onClick={handleRetry}>
+                        Try Again
+                      </Button>
+                    </AlertDescription>
                   </Alert>
                 )}
               </div>
@@ -328,7 +459,23 @@ const FaceCheck = () => {
               }`}>
                 <div className="flex justify-between items-center">
                   <CardTitle className="text-xl font-semibold">Analysis Results</CardTitle>
-                  {getRiskBadge()}
+                  <div className="flex items-center gap-2">
+                    {isFallback && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-medium">
+                              LIMITED
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs">Limited analysis due to high demand</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                    {getRiskBadge()}
+                  </div>
                 </div>
               </CardHeader>
               
@@ -361,18 +508,21 @@ const FaceCheck = () => {
               </CardContent>
               
               <CardFooter className="bg-gray-50 border-t border-gray-100 flex justify-end gap-2 pt-4">
-                {riskLevel === 'high' ? (
-                  <>
-                    <Button variant="outline" size="sm">
-                      Save Report
-                    </Button>
-                    <Button className="bg-red-600 hover:bg-red-700" size="sm">
-                      Report Profile
-                    </Button>
-                  </>
-                ) : (
-                  <Button variant="outline" size="sm">
-                    Save Report
+                {!isFallback && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleShareResults}
+                    className="flex items-center gap-1"
+                  >
+                    <Share2 className="h-4 w-4" />
+                    Share Results
+                  </Button>
+                )}
+                
+                {riskLevel === 'high' && (
+                  <Button className="bg-red-600 hover:bg-red-700" size="sm">
+                    Report Profile
                   </Button>
                 )}
               </CardFooter>

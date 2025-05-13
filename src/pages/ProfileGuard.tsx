@@ -7,36 +7,23 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const ProfileGuard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [result, setResult] = useState<{
-    isFake: boolean | null;
-    confidence: number | null;
-    details: string | null;
-  }>({
-    isFake: null,
-    confidence: null,
-    details: null,
-  });
+  const [redirecting, setRedirecting] = useState(false);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setFile(event.target.files[0]);
-      setResult({
-        isFake: null,
-        confidence: null,
-        details: null,
-      });
     }
   };
 
-  // This page is now deprecated - redirect users to FaceCheck
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    setRedirecting(true);
     
     // Show a toast informing users
     toast({
@@ -45,8 +32,23 @@ const ProfileGuard = () => {
       variant: "default",
     });
     
-    // Redirect to the new FaceCheck page
-    navigate('/face-check');
+    // Redirect to the new FaceCheck page, passing the file if selected
+    setTimeout(() => {
+      if (file) {
+        // Store the file in sessionStorage to pass it to FaceCheck
+        // We'll use a timestamp as a key to avoid conflicts
+        const key = `selected_image_${Date.now()}`;
+        sessionStorage.setItem('profile_guard_redirect', key);
+        
+        // Create a URL for the file and store it
+        const fileUrl = URL.createObjectURL(file);
+        sessionStorage.setItem(key, fileUrl);
+        sessionStorage.setItem(`${key}_name`, file.name);
+        sessionStorage.setItem(`${key}_size`, String(file.size));
+      }
+      
+      navigate('/face-check');
+    }, 1500);
   };
 
   return (
@@ -61,12 +63,14 @@ const ProfileGuard = () => {
               Upload a profile image to detect if it's an AI-generated fake (deepfake) or an authentic photograph.
             </p>
             
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-yellow-800 mb-8 text-center">
-              <p className="font-medium">We've upgraded our scanner!</p>
-              <p className="text-sm mt-1">
-                Try our new and improved <a href="/face-check" className="underline font-semibold">FaceCheck Scanner</a> with enhanced AI detection capabilities.
-              </p>
-            </div>
+            <Alert variant="warning" className="bg-yellow-50 border-yellow-200 text-yellow-800 mb-8">
+              <AlertDescription className="text-center">
+                <p className="font-medium">We've upgraded our scanner!</p>
+                <p className="text-sm mt-1">
+                  Try our new and improved <a href="/face-check" className="underline font-semibold">FaceCheck Scanner</a> with enhanced AI detection capabilities.
+                </p>
+              </AlertDescription>
+            </Alert>
 
             <div className="mb-12">
               <form onSubmit={handleSubmit} className="space-y-6">
@@ -111,9 +115,16 @@ const ProfileGuard = () => {
                       type="submit"
                       className="w-full max-w-md"
                       variant="default"
-                      disabled={!file}
+                      disabled={redirecting}
                     >
-                      Try Our New Scanner
+                      {redirecting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Redirecting...
+                        </>
+                      ) : (
+                        "Try Our New Scanner"
+                      )}
                     </Button>
                   </div>
                 </div>

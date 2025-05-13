@@ -12,6 +12,46 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Configure API request retry settings
+const MAX_RETRIES = 2;
+const RETRY_DELAY = 1000; // 1 second
+
+async function retryFetch(url, options, retries = MAX_RETRIES, delay = RETRY_DELAY) {
+  try {
+    const response = await fetch(url, options);
+    
+    // If rate limited, wait and retry
+    if (response.status === 429 && retries > 0) {
+      console.log(`Rate limited. Retrying in ${delay}ms. Retries left: ${retries}`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return retryFetch(url, options, retries - 1, delay * 2);
+    }
+    
+    return response;
+  } catch (error) {
+    if (retries > 0) {
+      console.log(`Fetch error: ${error.message}. Retrying in ${delay}ms. Retries left: ${retries}`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return retryFetch(url, options, retries - 1, delay * 2);
+    }
+    throw error;
+  }
+}
+
+function getFallbackAnalysis(imageUrl) {
+  // Create a fallback analysis if the AI service is unavailable
+  return {
+    analysis: "We were unable to perform a detailed analysis at this time due to high demand. Here are some general tips for identifying fake profiles:\n\n" +
+      "1. Look for inconsistencies in facial features\n" +
+      "2. Check for unnatural backgrounds or lighting\n" +
+      "3. Look for unusual artifacts around edges of the image\n" +
+      "4. Consider the context of how you received this image\n\n" +
+      "We recommend being cautious and looking for other verification before trusting profiles with suspicious characteristics.",
+    riskLevel: "medium",
+    isFallback: true
+  };
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -77,8 +117,8 @@ serve(async (req) => {
     console.log("Calling OpenAI API for image analysis");
     
     try {
-      // Call OpenAI API to analyze the image with enhanced expert prompt
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      // Call OpenAI API with retry mechanism
+      const response = await retryFetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${openAIApiKey}`,
@@ -134,14 +174,12 @@ serve(async (req) => {
         const errorData = await response.text();
         console.error("OpenAI API error:", response.status, errorData);
         
-        // Check for quota exceeded error
+        // Check for quota or rate limit errors
         if (errorData.includes("quota") || errorData.includes("billing") || response.status === 429) {
-          return new Response(JSON.stringify({ 
-            error: "OpenAI API quota exceeded. Please try again later or contact the administrator to update the API key.",
-            analysis: "Unable to analyze image due to API quota limitations. The service is temporarily unavailable.",
-            riskLevel: "medium" // Default to medium when we can't analyze
-          }), {
-            status: 200, // Return 200 to the client so the app can handle this gracefully
+          console.log("API quota or rate limit exceeded, using fallback analysis");
+          const fallback = getFallbackAnalysis(imageUrl);
+          return new Response(JSON.stringify(fallback), {
+            status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         }
@@ -197,6 +235,24 @@ serve(async (req) => {
         riskLevel = 'low';
       }
       
+      // Record the analysis result in the database for future reference (optional)
+      try {
+        const { error } = await supabase.from('image_analyses').insert({
+          image_url: imageUrl,
+          risk_level: riskLevel,
+          analysis: analysisResult,
+          created_at: new Date()
+        }).maybeSingle();
+        
+        if (error) {
+          console.error("Error storing analysis result:", error);
+          // Continue anyway - this is non-critical
+        }
+      } catch (dbError) {
+        console.error("Database error when storing analysis:", dbError);
+        // Continue anyway - this is non-critical
+      }
+      
       return new Response(JSON.stringify({ 
         analysis: analysisResult,
         riskLevel: riskLevel
@@ -206,27 +262,23 @@ serve(async (req) => {
     } catch (openAIError) {
       console.error('Error with OpenAI API:', openAIError);
       
-      // Handle API key errors gracefully
-      if (openAIError.message.includes('quota') || openAIError.message.includes('billing')) {
-        return new Response(JSON.stringify({ 
-          error: "OpenAI API quota exceeded. Please try again later or contact the administrator to update the API key.",
-          analysis: "Unable to analyze image due to API quota limitations. The service is temporarily unavailable.",
-          riskLevel: "medium" // Default to medium when we can't analyze
-        }), {
-          status: 200, // Return 200 to the client so the app can handle this gracefully
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      
-      throw openAIError; // Re-throw for general error handling
+      // Handle API key errors or network errors gracefully
+      console.log("API error occurred, using fallback analysis");
+      const fallback = getFallbackAnalysis(imageUrl);
+      return new Response(JSON.stringify(fallback), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
   } catch (error) {
     console.error('Error in facial recognition function:', error);
-    return new Response(JSON.stringify({ 
-      error: error.message,
-      details: 'There was an error analyzing the image'
-    }), {
-      status: 500,
+    
+    // Return a user-friendly error with a fallback mechanism
+    const fallback = getFallbackAnalysis("error");
+    fallback.error = error.message;
+    
+    return new Response(JSON.stringify(fallback), {
+      status: 200, // Return 200 even for errors to handle gracefully on client
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
