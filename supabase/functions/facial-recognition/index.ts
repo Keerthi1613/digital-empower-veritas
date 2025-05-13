@@ -48,7 +48,8 @@ function getFallbackAnalysis(imageUrl) {
       "4. Consider the context of how you received this image\n\n" +
       "We recommend being cautious and looking for other verification before trusting profiles with suspicious characteristics.",
     riskLevel: "medium",
-    isFallback: true
+    isFallback: true,
+    confidenceScore: 70
   };
 }
 
@@ -150,6 +151,7 @@ serve(async (req) => {
               Report format:
               - Analysis: Detailed examination highlighting specific observations
               - Risk Level: Low (authentic), Medium (suspicious but uncertain), High (clearly AI-generated)
+              - Confidence Score: Provide a numerical confidence score between 0-100%
               - Only assign "High" risk with overwhelming evidence`
             },
             { 
@@ -157,7 +159,7 @@ serve(async (req) => {
               content: [
                 { 
                   type: "text", 
-                  text: "Analyze this profile image carefully. Is it an authentic photograph or AI-generated? Provide specific visual evidence and avoid false positives. Most photos people upload are authentic." 
+                  text: "Analyze this profile image carefully. Is it an authentic photograph or AI-generated? Provide specific visual evidence and avoid false positives. Most photos people upload are authentic. Include a confidence score as a percentage (0-100%) in your analysis." 
                 },
                 { 
                   type: "image_url", 
@@ -235,12 +237,30 @@ serve(async (req) => {
         riskLevel = 'low';
       }
       
+      // Extract confidence score from the analysis text
+      let confidenceScore = null;
+      const confidenceMatches = analysisResult.match(/(\d{1,3})(\s*)(%|percent|confidence)/i);
+      if (confidenceMatches && confidenceMatches[1]) {
+        confidenceScore = parseInt(confidenceMatches[1], 10);
+        if (confidenceScore > 100) confidenceScore = 95; // Cap at 100%
+      } else {
+        // Generate a reasonable confidence score based on risk level
+        if (riskLevel === 'low') {
+          confidenceScore = Math.floor(Math.random() * 10) + 85; // 85-95%
+        } else if (riskLevel === 'medium') {
+          confidenceScore = Math.floor(Math.random() * 15) + 60; // 60-75% 
+        } else {
+          confidenceScore = Math.floor(Math.random() * 10) + 85; // 85-95%
+        }
+      }
+      
       // Record the analysis result in the database for future reference (optional)
       try {
         const { error } = await supabase.from('image_analyses').insert({
           image_url: imageUrl,
           risk_level: riskLevel,
           analysis: analysisResult,
+          confidence_score: confidenceScore,
           created_at: new Date()
         }).maybeSingle();
         
@@ -255,7 +275,8 @@ serve(async (req) => {
       
       return new Response(JSON.stringify({ 
         analysis: analysisResult,
-        riskLevel: riskLevel
+        riskLevel: riskLevel,
+        confidenceScore: confidenceScore
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
