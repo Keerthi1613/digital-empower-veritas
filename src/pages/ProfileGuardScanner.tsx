@@ -191,6 +191,17 @@ const ProfileGuardScanner: React.FC = () => {
   const [imgResultMsg, setImgResultMsg] = useState<string | null>(null);
   const [imgProgress, setImgProgress] = useState(0);
 
+  // Helper to fully reset image checker state (safe to call anywhere)
+  const resetImageCheckerAll = () => {
+    setShowImageChecker(false);
+    setSelectedImage(null);
+    setPreviewUrl(null);
+    setAnalyzingImage(false);
+    setImgRisk(null);
+    setImgResultMsg(null);
+    setImgProgress(0);
+  };
+
   // Log state for debugging
   useEffect(() => {
     console.log("STATE -->", { input, scanning, profile, result, isPrivate, showQuestionnaire, answers, questionIdx, privateProfilePic, showImageChecker, selectedImage, imgRisk, imgResultMsg });
@@ -206,16 +217,7 @@ const ProfileGuardScanner: React.FC = () => {
     setAnswers({});
     setQuestionIdx(0);
     setPrivateProfilePic(null);
-    setShowImageChecker(false);
-
-    // --- IMPORTANT: Fully reset image checker state ---
-    setSelectedImage(null);
-    setPreviewUrl(null);
-    setAnalyzingImage(false);
-    setImgRisk(null);
-    setImgResultMsg(null);
-    setImgProgress(0);
-
+    resetImageCheckerAll();
     console.log("Input changed --> Full state reset");
   }, [input]);
 
@@ -230,16 +232,7 @@ const ProfileGuardScanner: React.FC = () => {
     setAnswers({});
     setQuestionIdx(0);
     setPrivateProfilePic(null);
-    setShowImageChecker(false);
-
-    // --- IMPORTANT: Fully reset image checker state on new scan ---
-    setSelectedImage(null);
-    setPreviewUrl(null);
-    setAnalyzingImage(false);
-    setImgRisk(null);
-    setImgResultMsg(null);
-    setImgProgress(0);
-
+    resetImageCheckerAll();
     console.log("Scan started");
 
     // Simulate async scan (replace with actual API/fetch logic)
@@ -253,26 +246,20 @@ const ProfileGuardScanner: React.FC = () => {
       setPrivateProfilePic(MOCK_PROFILE_PRIVATE.picture);
       setShowQuestionnaire(true);
       setResult(null);
-      setShowImageChecker(false);
+      resetImageCheckerAll();
       console.log("Set mock private profile, triggered questionnaire");
     } else {
       setProfile(MOCK_PROFILE_PUBLIC);
       setResult(analyzeProfile(MOCK_PROFILE_PUBLIC));
       setIsPrivate(false);
       setShowQuestionnaire(false);
-      setShowImageChecker(false);
+      resetImageCheckerAll();
       console.log("Set mock public profile + result");
     }
     setScanning(false);
     setQuestionIdx(0);
     setAnswers({});
-    setShowImageChecker(false);
-    setSelectedImage(null);
-    setPreviewUrl(null);
-    setAnalyzingImage(false);
-    setImgRisk(null);
-    setImgResultMsg(null);
-    setImgProgress(0);
+    resetImageCheckerAll();
     console.log("Scan done");
   };
 
@@ -367,6 +354,11 @@ const ProfileGuardScanner: React.FC = () => {
     setImgProgress(0);
   };
 
+  // When the button "Try Fake Profile Photo Detector" is pressed, always start image checker fresh
+  const handleShowImageChecker = () => {
+    resetImageCheckerAll();
+    setShowImageChecker(true);
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-veritas-lightPurple to-white">
@@ -587,7 +579,7 @@ const ProfileGuardScanner: React.FC = () => {
             variant="outline"
             type="button"
             className="mt-4 text-base"
-            onClick={() => setShowImageChecker(true)}
+            onClick={handleShowImageChecker}
           >
             <ImageIcon className="mr-1 h-5 w-5" />
             Try Fake Profile Photo Detector
