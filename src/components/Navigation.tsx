@@ -57,6 +57,7 @@ const Navigation = () => {
           <div className="hidden md:flex space-x-6 items-center">
             <Link to="/" className="text-gray-700 hover:text-veritas-purple transition-colors">Home</Link>
             <Link to="/profile-guard" className="text-gray-700 hover:text-veritas-purple transition-colors">ProfileGuard</Link>
+            <Link to="/profile-guard-scanner" className="text-veritas-purple font-semibold hover:underline transition-colors">Scan Profile</Link>
             <Link to="/chatbot" className="text-gray-700 hover:text-veritas-purple transition-colors">Safety Assistant</Link>
             <Link to="/face-check" className="text-gray-700 hover:text-veritas-purple transition-colors">Image Check</Link>
             <Link to="/vault" className="text-gray-700 hover:text-veritas-purple transition-colors">Secure Vault</Link>
@@ -99,6 +100,7 @@ const Navigation = () => {
           <div className="container mx-auto px-4 flex flex-col space-y-3 py-3">
             <Link to="/" className="text-gray-700 hover:text-veritas-purple py-2 transition-colors" onClick={toggleMenu}>Home</Link>
             <Link to="/profile-guard" className="text-gray-700 hover:text-veritas-purple py-2 transition-colors" onClick={toggleMenu}>ProfileGuard</Link>
+            <Link to="/profile-guard-scanner" className="text-veritas-purple font-semibold hover:underline py-2 transition-colors" onClick={toggleMenu}>Scan Profile</Link>
             <Link to="/chatbot" className="text-gray-700 hover:text-veritas-purple py-2 transition-colors" onClick={toggleMenu}>
               <MessageCircle className="h-4 w-4 inline mr-1" /> Safety Assistant
             </Link>
