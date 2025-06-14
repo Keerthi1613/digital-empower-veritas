@@ -4,7 +4,11 @@ import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Shield, Users, ArrowUp, ArrowDown, Check, X, Lock } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Shield, Users, ArrowUp, ArrowDown, Check, X, Lock, Upload, Image as ImageIcon, AlertCircle
+} from "lucide-react";
 
 const MOCK_PROFILE_PUBLIC = {
   picture: "https://randomuser.me/api/portraits/women/85.jpg",
@@ -178,10 +182,19 @@ const ProfileGuardScanner: React.FC = () => {
   const [questionIdx, setQuestionIdx] = useState(0);
   const [privateProfilePic, setPrivateProfilePic] = useState<string | null>(null);
 
+  // Image checker state (new step after scan)
+  const [showImageChecker, setShowImageChecker] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [analyzingImage, setAnalyzingImage] = useState(false);
+  const [imgRisk, setImgRisk] = useState<null | 'low' | 'high' | 'medium'>(null);
+  const [imgResultMsg, setImgResultMsg] = useState<string | null>(null);
+  const [imgProgress, setImgProgress] = useState(0);
+
   // Log state for debugging
   useEffect(() => {
-    console.log("STATE -->", { input, scanning, profile, result, isPrivate, showQuestionnaire, answers, questionIdx, privateProfilePic });
-  }, [input, scanning, profile, result, isPrivate, showQuestionnaire, answers, questionIdx, privateProfilePic]);
+    console.log("STATE -->", { input, scanning, profile, result, isPrivate, showQuestionnaire, answers, questionIdx, privateProfilePic, showImageChecker, selectedImage, imgRisk, imgResultMsg });
+  }, [input, scanning, profile, result, isPrivate, showQuestionnaire, answers, questionIdx, privateProfilePic, showImageChecker, selectedImage, imgRisk, imgResultMsg]);
 
   // Fully reset scan state on input change
   useEffect(() => {
@@ -193,6 +206,13 @@ const ProfileGuardScanner: React.FC = () => {
     setAnswers({});
     setQuestionIdx(0);
     setPrivateProfilePic(null);
+    setShowImageChecker(false);
+    setSelectedImage(null);
+    setPreviewUrl(null);
+    setAnalyzingImage(false);
+    setImgRisk(null);
+    setImgResultMsg(null);
+    setImgProgress(0);
     console.log("Input changed --> Full state reset");
   }, [input]);
 
@@ -207,6 +227,13 @@ const ProfileGuardScanner: React.FC = () => {
     setAnswers({});
     setQuestionIdx(0);
     setPrivateProfilePic(null);
+    setShowImageChecker(false);
+    setSelectedImage(null);
+    setPreviewUrl(null);
+    setAnalyzingImage(false);
+    setImgRisk(null);
+    setImgResultMsg(null);
+    setImgProgress(0);
     console.log("Scan started");
 
     // Simulate async scan (replace with actual API/fetch logic)
@@ -220,17 +247,26 @@ const ProfileGuardScanner: React.FC = () => {
       setPrivateProfilePic(MOCK_PROFILE_PRIVATE.picture);
       setShowQuestionnaire(true);
       setResult(null);
+      setShowImageChecker(false);
       console.log("Set mock private profile, triggered questionnaire");
     } else {
       setProfile(MOCK_PROFILE_PUBLIC);
       setResult(analyzeProfile(MOCK_PROFILE_PUBLIC));
       setIsPrivate(false);
       setShowQuestionnaire(false);
+      setShowImageChecker(false);
       console.log("Set mock public profile + result");
     }
     setScanning(false);
     setQuestionIdx(0);
     setAnswers({});
+    setShowImageChecker(false);
+    setSelectedImage(null);
+    setPreviewUrl(null);
+    setAnalyzingImage(false);
+    setImgRisk(null);
+    setImgResultMsg(null);
+    setImgProgress(0);
     console.log("Scan done");
   };
 
@@ -256,6 +292,75 @@ const ProfileGuardScanner: React.FC = () => {
     setInput("");
     console.log("Clear/reset pressed. Input cleared.");
   };
+
+  // === IMAGE CHECKER HANDLERS ===
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0]) return;
+    const file = e.target.files[0];
+    // Check file type
+    if (!file.type.match('image.*')) {
+      alert("Please select an image file.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image too large (max 5MB).");
+      return;
+    }
+    setSelectedImage(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setPreviewUrl(reader.result as string);
+    reader.readAsDataURL(file);
+    setImgRisk(null);
+    setImgResultMsg(null);
+    setImgProgress(0);
+  };
+
+  const handleAnalyzeImage = async () => {
+    if (!selectedImage) return;
+    setAnalyzingImage(true);
+    setImgProgress(0);
+    setImgRisk(null);
+    setImgResultMsg(null);
+
+    // Simulate progress
+    for (let progress = 0; progress <= 90; progress += 7) {
+      setImgProgress(progress);
+      await new Promise(res => setTimeout(res, 70));
+    }
+
+    // Simulate mock result (random but fixed for file name)
+    const mockScore = (selectedImage.name.length * selectedImage.size) % 100;
+    let fakeScore = mockScore;
+    let fakeResult: 'low' | 'medium' | 'high';
+    if (fakeScore > 80) fakeResult = 'high';
+    else if (fakeScore > 50) fakeResult = 'medium';
+    else fakeResult = 'low';
+    setImgProgress(100);
+
+    if (fakeResult === 'low') {
+      setImgRisk("low");
+      setImgResultMsg("This image appears to be a genuine photo of a real person.");
+    } else if (fakeResult === 'medium') {
+      setImgRisk("medium");
+      setImgResultMsg("This image has some suspicious elements or signs of being AI-generated. Use caution.");
+    } else {
+      setImgRisk("high");
+      setImgResultMsg("Warning: This image shows strong signs of being AI-generated or fake.");
+    }
+
+    setAnalyzingImage(false);
+  };
+
+  const resetImageChecker = () => {
+    setSelectedImage(null);
+    setPreviewUrl(null);
+    setAnalyzingImage(false);
+    setImgRisk(null);
+    setImgResultMsg(null);
+    setImgProgress(0);
+  };
+
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-veritas-lightPurple to-white">
@@ -468,6 +573,135 @@ const ProfileGuardScanner: React.FC = () => {
               </div>
             )}
           </>
+        )}
+
+        {/* Show "Try Image Fake-Check" Step After Result */}
+        {profile && result && !showImageChecker && (
+          <Button
+            variant="outline"
+            type="button"
+            className="mt-4 text-base"
+            onClick={() => setShowImageChecker(true)}
+          >
+            <ImageIcon className="mr-1 h-5 w-5" />
+            Try Fake Profile Photo Detector
+          </Button>
+        )}
+
+        {/* Show Image Checker Card */}
+        {showImageChecker && (
+          <Card className="w-full shadow-lg mt-2 mb-8 border-purple-200 animate-in fade-in">
+            <CardHeader>
+              <div className="flex items-center gap-2 mb-1">
+                <ImageIcon className="h-6 w-6 text-veritas-purple" />
+                <CardTitle className="text-veritas-purple text-lg">Profile Photo: Fake or Real?</CardTitle>
+              </div>
+              <p className="text-gray-700 text-sm">
+                Upload a profile photo to check if it looks like a real person or an AI fake.<br />
+                (Demo only – no image leaves your device)
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col sm:flex-row gap-6 items-start w-full">
+                <div className="flex flex-col items-center">
+                  {/* Upload Input */}
+                  <label
+                    className={`flex flex-col items-center justify-center w-40 h-40 border-2 ${previewUrl ? 'border-solid border-veritas-purple/30' : 'border-dashed border-gray-300'} 
+                    rounded-lg cursor-pointer ${previewUrl ? 'bg-gray-50' : 'bg-gray-50 hover:bg-gray-100'}`}
+                  >
+                    {previewUrl ? (
+                      <img src={previewUrl} alt="Preview" className="w-full h-full object-cover rounded" />
+                    ) : (
+                      <div className="flex flex-col items-center">
+                        <Upload className="h-8 w-8 text-veritas-purple mb-1" />
+                        <span className="text-xs text-gray-500">PNG, JPG, or WEBP (Max 5MB)</span>
+                      </div>
+                    )}
+                    <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+                  </label>
+                  {selectedImage && (
+                    <div className="mt-2 text-xs text-gray-600 text-center">
+                      {selectedImage.name}<br />
+                      {(selectedImage.size / 1024 < 1000
+                        ? `${Math.round(selectedImage.size / 1024)} KB`
+                        : `${(selectedImage.size / (1024 * 1024)).toFixed(2)} MB`)}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1 flex flex-col">
+                  {/* Buttons + Analysis result */}
+                  <div className="flex items-center gap-3 flex-wrap mt-2">
+                    <Button
+                      type="button"
+                      className="bg-veritas-purple hover:bg-veritas-darkPurple"
+                      size="sm"
+                      onClick={handleAnalyzeImage}
+                      disabled={!selectedImage || analyzingImage}
+                    >
+                      {analyzingImage ? (
+                        <>
+                          <Shield className="h-4 w-4 animate-spin mr-2" />
+                          Analyzing…
+                        </>
+                      ) : (
+                        <>
+                          <Shield className="h-4 w-4 mr-2" />
+                          {imgRisk || imgResultMsg ? "Analyze Again" : "Analyze"}
+                        </>
+                      )}
+                    </Button>
+                    {(selectedImage || imgResultMsg) && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="text-veritas-purple"
+                        size="sm"
+                        onClick={resetImageChecker}
+                        disabled={analyzingImage}
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                  {/* Progress bar */}
+                  {analyzingImage && (
+                    <div className="mt-3">
+                      <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
+                        <span>Analyzing...</span>
+                        <span>{imgProgress}%</span>
+                      </div>
+                      <Progress value={imgProgress} className="h-1.5" />
+                    </div>
+                  )}
+                  {/* Result */}
+                  {imgRisk && imgResultMsg && (
+                    <Alert variant={imgRisk === "high" ? "destructive" : undefined} className={`mt-4
+                      ${imgRisk === "high" ? "bg-red-100 border-red-200 text-red-800"
+                      : imgRisk === "medium" ? "bg-yellow-50 border-yellow-200 text-yellow-800"
+                      : "bg-green-50 border-green-200 text-green-800"}`}>
+                      {imgRisk === "high"
+                        ? <AlertCircle className="h-5 w-5" />
+                        : <Check className="h-5 w-5" />}
+                      <AlertTitle>
+                        {imgRisk === "low"
+                          ? "Authentic Image Detected"
+                          : imgRisk === "medium"
+                            ? "Suspicious Elements Detected"
+                            : "AI-Generated Image Detected"}
+                      </AlertTitle>
+                      <AlertDescription>
+                        {imgResultMsg}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              </div>
+              <div className="text-xs text-gray-500 mt-3">
+                <b>Note:</b> This fake detector is a demo and does not do real analysis yet.
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Tips or FAQ */}
