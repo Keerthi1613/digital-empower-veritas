@@ -19,6 +19,7 @@ const FaceCheck = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isFallback, setIsFallback] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const { toast } = useToast();
   const [previousAnalyses, setPreviousAnalyses] = useState<any[]>([]);
   const [loadingPrevious, setLoadingPrevious] = useState(false);
@@ -169,16 +170,32 @@ const FaceCheck = () => {
     }
   };
 
-  const handleAnalyze = async () => {
-    if (!selectedImage) return;
-    
-    setIsAnalyzing(true);
+  const handleClear = () => {
+    setSelectedImage(null);
+    setPreviewUrl(null);
+    setIsAnalyzing(false);
+    setAnalysisResult(null);
+    setRiskLevel(null);
     setErrorMessage(null);
     setUploadProgress(0);
     setIsFallback(false);
     setIsRealImage(null);
     setAccuracyPercentage(null);
-    
+    setStatusMessage(null);
+  };
+
+  const handleAnalyze = async () => {
+    if (!selectedImage) return;
+
+    setIsAnalyzing(true);
+    setStatusMessage("Analyzing image...");
+    setErrorMessage(null);
+    setAnalysisResult(null);
+    setRiskLevel(null);
+    setIsFallback(false);
+    setIsRealImage(null);
+    setAccuracyPercentage(null);
+
     try {
       console.log("Starting image analysis process");
       toast({
@@ -270,25 +287,74 @@ const FaceCheck = () => {
       setIsRealImage(data.riskLevel === 'low');
       
       // Calculate accuracy percentage based on risk level
-      let accuracy = 0;
-      if (data.riskLevel === 'low') {
-        // For low risk (real images), show high authenticity confidence
-        accuracy = data.confidenceScore ? data.confidenceScore : Math.floor(Math.random() * 10) + 85; // 85-95% if no score provided
-      } else if (data.riskLevel === 'medium') {
-        // For medium risk, show moderate confidence
-        accuracy = data.confidenceScore ? data.confidenceScore : Math.floor(Math.random() * 15) + 60; // 60-75% if no score provided
-      } else {
-        // For high risk (AI-generated), show high AI detection confidence
-        accuracy = data.confidenceScore ? data.confidenceScore : Math.floor(Math.random() * 10) + 85; // 85-95% if no score provided
+      let apiRisk = (data && typeof data.riskLevel === "string" ? data.riskLevel : null) as 'low' | 'medium' | 'high' | null;
+      let confidence = typeof data.confidenceScore === "number" ? data.confidenceScore : null;
+
+      let displayRisk: 'real' | 'ai' | 'uncertain' | 'likely-real' | 'likely-ai' = 'uncertain';
+      let displayMessage = "";
+      let badge = "";
+      let color = "";
+      let displayConfidence = confidence;
+      let internalResultString = "";
+
+      if (confidence === null) {
+        // fallback
+        displayRisk = 'uncertain';
+        displayMessage = "⚠️ Unable to confidently classify this image.";
+        badge = "Uncertain";
+        color = "text-yellow-600";
+        internalResultString = "Could not determine authenticity.";
+      } else if (confidence < 60) {
+        displayRisk = 'uncertain';
+        displayMessage = "⚠️ Unable to confidently classify this image.";
+        badge = "Uncertain";
+        color = "text-yellow-600";
+        internalResultString = "Could not determine authenticity.";
+      } else if (confidence >= 60 && confidence < 85) {
+        if (apiRisk === "low") {
+          displayRisk = "likely-real";
+          displayMessage = "This image is likely real, but not 100% certain.";
+          badge = "Likely Real";
+          color = "text-green-700";
+          internalResultString = "Likely a real photo, proceed with care.";
+        } else {
+          displayRisk = "likely-ai";
+          displayMessage = "This image is possibly AI-generated, confidence is moderate.";
+          badge = "Possibly AI";
+          color = "text-yellow-700";
+          internalResultString = "Possibly AI-generated";
+        }
+      } else if (confidence >= 85) {
+        if (apiRisk === "low") {
+          displayRisk = "real";
+          displayMessage = "Authentic Image Detected";
+          badge = "Real";
+          color = "text-green-800";
+          internalResultString = "This appears to be a genuine photograph of a real person.";
+        } else if (apiRisk === "high") {
+          displayRisk = "ai";
+          displayMessage = "AI-Generated Image Detected";
+          badge = "AI";
+          color = "text-red-700";
+          internalResultString = "This image shows strong signs of being AI-generated.";
+        } else {
+          // Defensive if "medium" or strange API values
+          displayRisk = "likely-ai";
+          displayMessage = "This image is possibly AI-generated, but not 100% sure.";
+          badge = "Possibly AI";
+          color = "text-yellow-700";
+          internalResultString = "Possibly AI-generated";
+        }
       }
-      setAccuracyPercentage(accuracy);
-      
-      toast({
-        title: "Analysis complete",
-        description: `Risk level: ${data.riskLevel.toUpperCase()}`,
-        variant: data.riskLevel === 'high' ? "destructive" : "default",
-      });
-      
+
+      setStatusMessage(null);
+
+      // Feed everything back to state for final display
+      setAnalysisResult(internalResultString);
+      setRiskLevel(displayRisk === "real" ? "low" : displayRisk === "ai" ? "high" : displayRisk === "likely-ai" ? "medium" : null);
+      setIsRealImage(displayRisk === "real" || displayRisk === "likely-real");
+      setAccuracyPercentage(displayConfidence ?? 0);
+
       // Add to previous analyses in UI (optimistic update)
       const newAnalysis = {
         id: `temp-${Date.now()}`,
@@ -459,7 +525,7 @@ const FaceCheck = () => {
                   </div>
                 )}
                 
-                <div className="flex justify-center mt-6">
+                <div className="flex justify-center mt-6 gap-3">
                   <Button
                     onClick={handleAnalyze}
                     disabled={!selectedImage || isAnalyzing}
@@ -478,6 +544,17 @@ const FaceCheck = () => {
                       </>
                     )}
                   </Button>
+                  {(selectedImage || analysisResult) && (
+                    <Button
+                      onClick={handleClear}
+                      variant="ghost"
+                      className="text-veritas-purple border-veritas-purple"
+                      size="lg"
+                      disabled={isAnalyzing}
+                    >
+                      Clear
+                    </Button>
+                  )}
                 </div>
                 
                 {errorMessage && (

@@ -178,8 +178,19 @@ const ProfileGuardScanner: React.FC = () => {
   const [questionIdx, setQuestionIdx] = useState(0);
   const [privateProfilePic, setPrivateProfilePic] = useState<string | null>(null);
 
-  // New: Clear all scan UI immediately when scanning starts
-  React.useEffect(() => {
+  // --- NEW: Immediate state reset on input change so that result never lingers
+  useEffect(() => {
+    setProfile(null);
+    setResult(null);
+    setIsPrivate(false);
+    setShowQuestionnaire(false);
+    setAnswers({});
+    setQuestionIdx(0);
+    setPrivateProfilePic(null);
+  }, [input]);
+
+  // --- Clean up state when a new scan starts
+  useEffect(() => {
     if (scanning) {
       setProfile(null);
       setResult(null);
@@ -191,30 +202,32 @@ const ProfileGuardScanner: React.FC = () => {
     }
   }, [scanning]);
 
+  // --- Async fetch/result logic: only update when fetching is finished. Scanning state is handled cleanly.
   const handleScan = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Set scanning first so effect above will clear UI on the next frame
     setScanning(true);
 
-    // For DEMO: If input contains "private", treat as private profile.
-    const lowerInput = input.toLowerCase();
+    // For DEMO: Simulate async
+    const lowerInput = input.trim().toLowerCase();
     const isPrivateProfile = lowerInput.includes("private");
-    setTimeout(() => {
-      if (isPrivateProfile) {
-        setProfile(MOCK_PROFILE_PRIVATE);
-        setIsPrivate(true);
-        setPrivateProfilePic(MOCK_PROFILE_PRIVATE.picture);
-        setShowQuestionnaire(true);
-      } else {
-        setProfile(MOCK_PROFILE_PUBLIC);
-        setResult(analyzeProfile(MOCK_PROFILE_PUBLIC));
-        setIsPrivate(false);
-        setShowQuestionnaire(false);
-      }
-      setScanning(false);
-      setQuestionIdx(0);
-      setAnswers({});
-    }, 1200);
+
+    await new Promise(res => setTimeout(res, 1200)); // Simulate API
+
+    if (isPrivateProfile) {
+      setProfile(MOCK_PROFILE_PRIVATE);
+      setIsPrivate(true);
+      setPrivateProfilePic(MOCK_PROFILE_PRIVATE.picture);
+      setShowQuestionnaire(true);
+      setResult(null);
+    } else {
+      setProfile(MOCK_PROFILE_PUBLIC);
+      setResult(analyzeProfile(MOCK_PROFILE_PUBLIC));
+      setIsPrivate(false);
+      setShowQuestionnaire(false);
+    }
+    setScanning(false);
+    setQuestionIdx(0);
+    setAnswers({});
   };
 
   const handleAnswer = (val: string) => {
@@ -234,14 +247,7 @@ const ProfileGuardScanner: React.FC = () => {
   };
 
   const handleReset = () => {
-    setInput(""); // Clear the input box synchronously
-    setProfile(null);
-    setResult(null);
-    setIsPrivate(false);
-    setShowQuestionnaire(false);
-    setAnswers({});
-    setQuestionIdx(0);
-    setPrivateProfilePic(null);
+    setInput(""); // Clear input triggers state reset effect
   };
 
   return (
@@ -274,7 +280,8 @@ const ProfileGuardScanner: React.FC = () => {
                 <Button 
                   type="submit" 
                   className="mt-2 bg-veritas-purple hover:bg-veritas-darkPurple"
-                  disabled={scanning || !input}>
+                  disabled={scanning || !input}
+                >
                   {scanning ? "Scanning..." : "Scan Profile"}
                 </Button>
                 {(profile || result) && !scanning && (
@@ -286,6 +293,17 @@ const ProfileGuardScanner: React.FC = () => {
                     disabled={scanning}
                   >
                     Start New Scan
+                  </Button>
+                )}
+                {/* New: Dedicated Clear button */}
+                {!scanning && (profile || result || input) && (
+                  <Button
+                    variant="ghost"
+                    type="button"
+                    className="w-full mt-1 text-veritas-purple"
+                    onClick={handleReset}
+                  >
+                    Clear
                   </Button>
                 )}
               </form>
