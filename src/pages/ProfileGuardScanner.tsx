@@ -178,6 +178,11 @@ const ProfileGuardScanner: React.FC = () => {
   const [questionIdx, setQuestionIdx] = useState(0);
   const [privateProfilePic, setPrivateProfilePic] = useState<string | null>(null);
 
+  // Log state for debugging
+  useEffect(() => {
+    console.log("STATE -->", { input, scanning, profile, result, isPrivate, showQuestionnaire, answers, questionIdx, privateProfilePic });
+  }, [input, scanning, profile, result, isPrivate, showQuestionnaire, answers, questionIdx, privateProfilePic]);
+
   // Fully reset scan state on input change
   useEffect(() => {
     setScanning(false);
@@ -188,6 +193,7 @@ const ProfileGuardScanner: React.FC = () => {
     setAnswers({});
     setQuestionIdx(0);
     setPrivateProfilePic(null);
+    console.log("Input changed --> Full state reset");
   }, [input]);
 
   // On scan, reset all and go to scanning state first
@@ -201,6 +207,7 @@ const ProfileGuardScanner: React.FC = () => {
     setAnswers({});
     setQuestionIdx(0);
     setPrivateProfilePic(null);
+    console.log("Scan started");
 
     // Simulate async scan (replace with actual API/fetch logic)
     const lowerInput = input.trim().toLowerCase();
@@ -213,15 +220,18 @@ const ProfileGuardScanner: React.FC = () => {
       setPrivateProfilePic(MOCK_PROFILE_PRIVATE.picture);
       setShowQuestionnaire(true);
       setResult(null);
+      console.log("Set mock private profile, triggered questionnaire");
     } else {
       setProfile(MOCK_PROFILE_PUBLIC);
       setResult(analyzeProfile(MOCK_PROFILE_PUBLIC));
       setIsPrivate(false);
       setShowQuestionnaire(false);
+      console.log("Set mock public profile + result");
     }
     setScanning(false);
     setQuestionIdx(0);
     setAnswers({});
+    console.log("Scan done");
   };
 
   const handleAnswer = (val: string) => {
@@ -232,16 +242,19 @@ const ProfileGuardScanner: React.FC = () => {
     });
     if (questionIdx < QUESTIONNAIRE.length - 1) {
       setQuestionIdx(questionIdx + 1);
+      console.log("Answered questionnaire - questionIdx++");
     } else {
       // Finish & analyze
       const finalAnswers = { ...answers, [q.key]: val } as QuestionnaireAnswers;
       setShowQuestionnaire(false);
       setResult(analyzePrivateQuestionnaire(finalAnswers));
+      console.log("Questionnaire done, calculated result", finalAnswers);
     }
   };
 
   const handleReset = () => {
     setInput("");
+    console.log("Clear/reset pressed. Input cleared.");
   };
 
   return (
