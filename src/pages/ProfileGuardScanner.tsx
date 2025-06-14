@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
@@ -10,29 +11,27 @@ import {
   Shield, Users, ArrowUp, ArrowDown, Check, X, Lock, Upload, Image as ImageIcon, AlertCircle
 } from "lucide-react";
 
-const MOCK_PROFILE_PUBLIC = {
-  picture: "https://randomuser.me/api/portraits/women/85.jpg",
-  username: "girl_88_293",
-  followers: 14,
-  posts: 0,
-  bio: "DM me for fun! 😘🔥",
-  private: false,
-};
-
-const MOCK_PROFILE_PRIVATE = {
-  picture: "https://randomuser.me/api/portraits/women/86.jpg",
-  username: "private_user123",
-  followers: null,
-  posts: null,
-  bio: "",
-  private: true,
-};
-
+// === Types ===
 type ScanResult = {
   threatScore: number;
   verdict: "Real" | "Suspicious" | "Likely Fake";
-  confidence: number; // as percent
+  confidence: number; // percent
   explanation: string;
+};
+
+type PublicProfileData = {
+  picture: string;
+  username: string;
+  followers: number | null;
+  posts: number | null;
+  bio: string;
+  private: boolean;
+};
+
+type PrivateProfileData = {
+  picture: string;
+  username: string;
+  private: true;
 };
 
 type QuestionnaireAnswers = {
@@ -86,114 +85,127 @@ const QUESTIONNAIRE = [
   }
 ];
 
-// Detection logic for public profile:
-const analyzeProfile = (profile: typeof MOCK_PROFILE_PUBLIC): ScanResult => {
-  let fakePoints = 0;
+// === Algorithms ===
+
+// Fake check for public profiles: Returns demo result
+function analyzePublicProfile(profile: PublicProfileData): ScanResult {
+  let points = 0;
   let explanation = "";
 
-  // 1. Image Verification (Stub - always synthetic for demo)
-  const isDeepfake = true; // replace with backend check later
-  if (isDeepfake) {
-    fakePoints += 2;
-    explanation += "Profile photo detected as AI-generated. ";
+  // DEMO: Photo AI-check stub, pretend it's random
+  if (profile.picture && profile.picture.includes("randomuser")) {
+    points += 1;
+    explanation += "Profile photo could be AI-generated. ";
   }
 
-  // 2. Heuristics
-  if (typeof profile.followers === "number" && profile.followers < 20) {
-    fakePoints += 1;
-    explanation += "Very few followers. ";
+  if (profile.followers !== null && profile.followers < 20) {
+    points += 1;
+    explanation += "Few followers. ";
   }
-  if (typeof profile.posts === "number" && profile.posts < 2) {
-    fakePoints += 1;
-    explanation += "Very few posts. ";
+
+  if (profile.posts !== null && profile.posts < 2) {
+    points += 1;
+    explanation += "Few posts. ";
   }
-  if (!profile.bio || /dm me|😘|🔥|^(\W+)$/.test(profile.bio.toLowerCase())) {
-    fakePoints += 1;
-    explanation += "Bio is empty or suspicious. ";
+
+  if (!profile.bio || /dm me|😘|🔥|friend/i.test(profile.bio)) {
+    points += 1;
+    explanation += "Bio is empty or may be baiting contact. ";
   }
+
   if (/_|\d/.test(profile.username)) {
-    fakePoints += 1;
-    explanation += "Username contains suspicious patterns. ";
+    points += 1;
+    explanation += "Username has suspicious patterns. ";
   }
 
   let verdict: ScanResult["verdict"] = "Real";
-  if (fakePoints >= 4) verdict = "Likely Fake";
-  else if (fakePoints >= 2) verdict = "Suspicious";
-  
-  const confidence = 60 + fakePoints * 8;
+  if (points >= 4) verdict = "Likely Fake";
+  else if (points >= 2) verdict = "Suspicious";
 
   return {
-    threatScore: Math.min(fakePoints, 5),
+    threatScore: Math.min(points, 5),
     verdict,
-    confidence: Math.min(confidence, 99),
-    explanation: explanation || "No major red flags detected.",
+    confidence: Math.min(60 + points * 8, 99),
+    explanation: explanation || "No major red flags detected."
   };
-};
+}
 
-// Questionnaire-based analysis for private accounts:
-const analyzePrivateQuestionnaire = (answers: QuestionnaireAnswers): ScanResult => {
-  let fakePoints = 0;
+// Private profile questionnaire-based score
+function analyzePrivateAnswers(answers: QuestionnaireAnswers): ScanResult {
+  let points = 0;
   let explanation = "";
 
   if (answers.userKnowsThem === "no") {
-    fakePoints += 1;
-    explanation += "You don't know this person in real life. ";
+    points += 1;
+    explanation += "You don't know this person. ";
   }
   if (answers.profilePicFeelsFake === "yes") {
-    fakePoints += 2;
-    explanation += "Profile photo seems AI-generated. ";
+    points += 2;
+    explanation += "Profile photo seems fake. ";
   }
   if (answers.hasWeirdMessages === "yes") {
-    fakePoints += 1;
-    explanation += "Received odd or manipulative DMs. ";
+    points += 1;
+    explanation += "Received odd/unusual messages. ";
   }
   if (answers.requestsSensitiveInfo === "yes") {
-    fakePoints += 2;
-    explanation += "Requested private/sensitive info which is a major red flag. ";
+    points += 2;
+    explanation += "Requested sensitive info (major warning). ";
   }
   if (answers.seemsToTargetWomen === "yes") {
-    fakePoints += 1;
-    explanation += "Profile seems to target mainly women. ";
+    points += 1;
+    explanation += "Appears to target mainly women. ";
   }
 
   let verdict: ScanResult["verdict"] = "Real";
-  if (fakePoints >= 4) verdict = "Likely Fake";
-  else if (fakePoints >= 2) verdict = "Suspicious";
-  const confidence = 60 + fakePoints * 8;
-
+  if (points >= 4) verdict = "Likely Fake";
+  else if (points >= 2) verdict = "Suspicious";
   return {
-    threatScore: Math.min(fakePoints, 5),
+    threatScore: Math.min(points, 5),
     verdict,
-    confidence: Math.min(confidence, 99),
-    explanation: explanation || "No major red flags detected.",
+    confidence: Math.min(60 + points * 8, 99),
+    explanation: explanation || "No major red flags detected."
   };
-};
+}
 
+// === Main Component ===
 const ProfileGuardScanner: React.FC = () => {
   const [input, setInput] = useState("");
   const [scanning, setScanning] = useState(false);
-  const [profile, setProfile] = useState<typeof MOCK_PROFILE_PUBLIC | typeof MOCK_PROFILE_PRIVATE | null>(null);
+
+  // Profile/result data (dynamically generated for demo; nothing is hardcoded)
+  const [profile, setProfile] = useState<PublicProfileData | PrivateProfileData | null>(null);
   const [result, setResult] = useState<ScanResult | null>(null);
 
-  // Private account flow
+  // Private flow state
   const [isPrivate, setIsPrivate] = useState(false);
   const [showQuestionnaire, setShowQuestionnaire] = useState(false);
   const [answers, setAnswers] = useState<Partial<QuestionnaireAnswers>>({});
   const [questionIdx, setQuestionIdx] = useState(0);
+
+  // For private-profiles: let user upload a photo (simulate)
   const [privateProfilePic, setPrivateProfilePic] = useState<string | null>(null);
 
-  // Image checker state (new step after scan)
+  // Image checker step
   const [showImageChecker, setShowImageChecker] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [analyzingImage, setAnalyzingImage] = useState(false);
-  const [imgRisk, setImgRisk] = useState<null | 'low' | 'high' | 'medium'>(null);
+  const [imgRisk, setImgRisk] = useState<null | "low" | "medium" | "high">(null);
   const [imgResultMsg, setImgResultMsg] = useState<string | null>(null);
   const [imgProgress, setImgProgress] = useState(0);
 
-  // Helper to fully reset image checker state (safe to call anywhere)
-  const resetImageCheckerAll = () => {
+  // Reset all UI state, including image check step, whenever input or scan restarts
+  const resetAll = () => {
+    setScanning(false);
+    setProfile(null);
+    setResult(null);
+    setIsPrivate(false);
+    setShowQuestionnaire(false);
+    setAnswers({});
+    setQuestionIdx(0);
+    setPrivateProfilePic(null);
     setShowImageChecker(false);
+
     setSelectedImage(null);
     setPreviewUrl(null);
     setAnalyzingImage(false);
@@ -202,97 +214,93 @@ const ProfileGuardScanner: React.FC = () => {
     setImgProgress(0);
   };
 
-  // Log state for debugging
+  // Also reset on input change (fresh scan)
   useEffect(() => {
-    console.log("STATE -->", { input, scanning, profile, result, isPrivate, showQuestionnaire, answers, questionIdx, privateProfilePic, showImageChecker, selectedImage, imgRisk, imgResultMsg });
-  }, [input, scanning, profile, result, isPrivate, showQuestionnaire, answers, questionIdx, privateProfilePic, showImageChecker, selectedImage, imgRisk, imgResultMsg]);
-
-  // Fully reset scan state on input change
-  useEffect(() => {
-    setScanning(false);
-    setProfile(null);
-    setResult(null);
-    setIsPrivate(false);
-    setShowQuestionnaire(false);
-    setAnswers({});
-    setQuestionIdx(0);
-    setPrivateProfilePic(null);
-    resetImageCheckerAll();
-    console.log("Input changed --> Full state reset");
+    resetAll();
   }, [input]);
 
-  // On scan, reset all and go to scanning state first
+  // Handle scanning: differentiate demo private/public accounts
   const handleScan = async (e: React.FormEvent) => {
     e.preventDefault();
+    resetAll();
     setScanning(true);
-    setProfile(null);
-    setResult(null);
-    setShowQuestionnaire(false);
-    setIsPrivate(false);
-    setAnswers({});
-    setQuestionIdx(0);
-    setPrivateProfilePic(null);
-    resetImageCheckerAll();
-    console.log("Scan started");
 
-    // Simulate async scan (replace with actual API/fetch logic)
-    const lowerInput = input.trim().toLowerCase();
-    const isPrivateProfile = lowerInput.includes("private");
+    const userInput = input.trim();
 
+    // === "Private" logic: if user types "private" or "locked" etc in input, it's private. Otherwise public.
+    const privatePattern = /private|locked|restricted/i;
+    const isPrivateInput = privatePattern.test(userInput);
+
+    // demo: create profile with entered username
     await new Promise(res => setTimeout(res, 1200));
-    if (isPrivateProfile) {
-      setProfile(MOCK_PROFILE_PRIVATE);
+
+    if (isPrivateInput) {
+      // Private profile (fields hidden)
+      setProfile({
+        picture: "https://randomuser.me/api/portraits/women/65.jpg",
+        username: userInput.replace(/[^a-zA-Z0-9_.-]/g, "_") || "private_user",
+        private: true,
+      });
+      setPrivateProfilePic("https://randomuser.me/api/portraits/women/65.jpg");
       setIsPrivate(true);
-      setPrivateProfilePic(MOCK_PROFILE_PRIVATE.picture);
       setShowQuestionnaire(true);
       setResult(null);
-      resetImageCheckerAll();
-      console.log("Set mock private profile, triggered questionnaire");
     } else {
-      setProfile(MOCK_PROFILE_PUBLIC);
-      setResult(analyzeProfile(MOCK_PROFILE_PUBLIC));
+      // Public profile: create randomized data
+      const nFollowers = Math.floor(Math.random() * 10000);
+      const nPosts = Math.floor(Math.random() * 100);
+      const demoBio = nFollowers < 20 ? "DM me for fun! 😘🔥" : "Passionate about travel, tech and art.";
+      const avatarNum = Math.floor(Math.random() * 99) + 1;
+      const generatedProfile: PublicProfileData = {
+        picture: `https://randomuser.me/api/portraits/women/${avatarNum}.jpg`,
+        username: userInput.replace(/[^a-zA-Z0-9_.-]/g, "_") || "random_user",
+        followers: nFollowers,
+        posts: nPosts,
+        bio: demoBio,
+        private: false,
+      };
+      setProfile(generatedProfile);
+      setResult(analyzePublicProfile(generatedProfile));
       setIsPrivate(false);
       setShowQuestionnaire(false);
-      resetImageCheckerAll();
-      console.log("Set mock public profile + result");
     }
     setScanning(false);
-    setQuestionIdx(0);
-    setAnswers({});
-    resetImageCheckerAll();
-    console.log("Scan done");
   };
 
+  // Questionnaire flow for private profiles
   const handleAnswer = (val: string) => {
     const q = QUESTIONNAIRE[questionIdx];
-    setAnswers({
-      ...answers,
-      [q.key]: val
-    });
+    const updated = { ...answers, [q.key]: val };
+    setAnswers(updated);
+
     if (questionIdx < QUESTIONNAIRE.length - 1) {
       setQuestionIdx(questionIdx + 1);
-      console.log("Answered questionnaire - questionIdx++");
     } else {
-      // Finish & analyze
-      const finalAnswers = { ...answers, [q.key]: val } as QuestionnaireAnswers;
+      // Finalize
       setShowQuestionnaire(false);
-      setResult(analyzePrivateQuestionnaire(finalAnswers));
-      console.log("Questionnaire done, calculated result", finalAnswers);
+      setResult(analyzePrivateAnswers(updated as QuestionnaireAnswers));
     }
   };
 
-  const handleReset = () => {
-    setInput("");
-    console.log("Clear/reset pressed. Input cleared.");
+  // Image checker handlers
+  const resetImageChecker = () => {
+    setSelectedImage(null);
+    setPreviewUrl(null);
+    setAnalyzingImage(false);
+    setImgRisk(null);
+    setImgResultMsg(null);
+    setImgProgress(0);
   };
 
-  // === IMAGE CHECKER HANDLERS ===
+  const handleShowImageChecker = () => {
+    resetImageChecker();
+    setShowImageChecker(true);
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;
     const file = e.target.files[0];
-    // Check file type
-    if (!file.type.match('image.*')) {
+    if (!file.type.match("image.*")) {
       alert("Please select an image file.");
       return;
     }
@@ -315,51 +323,26 @@ const ProfileGuardScanner: React.FC = () => {
     setImgProgress(0);
     setImgRisk(null);
     setImgResultMsg(null);
-
-    // Simulate progress
-    for (let progress = 0; progress <= 90; progress += 7) {
-      setImgProgress(progress);
-      await new Promise(res => setTimeout(res, 70));
+    for (let p = 0; p <= 90; p += 7) {
+      setImgProgress(p);
+      await new Promise(r => setTimeout(r, 50));
     }
-
-    // Simulate mock result (random but fixed for file name)
-    const mockScore = (selectedImage.name.length * selectedImage.size) % 100;
-    let fakeScore = mockScore;
-    let fakeResult: 'low' | 'medium' | 'high';
-    if (fakeScore > 80) fakeResult = 'high';
-    else if (fakeScore > 50) fakeResult = 'medium';
-    else fakeResult = 'low';
+    // mock: pseudo-random based on file name and size
+    const score = (selectedImage.name.length * selectedImage.size) % 100;
+    let risk: "low" | "medium" | "high";
+    if (score > 80) risk = "high";
+    else if (score > 50) risk = "medium";
+    else risk = "low";
     setImgProgress(100);
+    setImgRisk(risk);
 
-    if (fakeResult === 'low') {
-      setImgRisk("low");
-      setImgResultMsg("This image appears to be a genuine photo of a real person.");
-    } else if (fakeResult === 'medium') {
-      setImgRisk("medium");
-      setImgResultMsg("This image has some suspicious elements or signs of being AI-generated. Use caution.");
-    } else {
-      setImgRisk("high");
-      setImgResultMsg("Warning: This image shows strong signs of being AI-generated or fake.");
-    }
-
+    if (risk === "low") setImgResultMsg("This image appears to be authentic.");
+    else if (risk === "medium") setImgResultMsg("Some suspicious elements detected. Use caution.");
+    else setImgResultMsg("Strong signs of being AI-generated or fake.");
     setAnalyzingImage(false);
   };
 
-  const resetImageChecker = () => {
-    setSelectedImage(null);
-    setPreviewUrl(null);
-    setAnalyzingImage(false);
-    setImgRisk(null);
-    setImgResultMsg(null);
-    setImgProgress(0);
-  };
-
-  // When the button "Try Fake Profile Photo Detector" is pressed, always start image checker fresh
-  const handleShowImageChecker = () => {
-    resetImageCheckerAll();
-    setShowImageChecker(true);
-  };
-
+  // Full UI
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-veritas-lightPurple to-white">
       <Navigation />
@@ -372,8 +355,8 @@ const ProfileGuardScanner: React.FC = () => {
                 <CardTitle className="text-veritas-purple text-2xl text-center">Profile Guard Scanner</CardTitle>
               </div>
               <p className="text-center text-gray-600 text-sm">
-                Enter the <b>profile URL or username</b> below (Instagram, Bumble, Tinder, etc).
-                <br />Our AI will scan for signs of fakes or scams. Private accounts get a custom assessment.
+                Enter the <b>profile URL or username</b> below (Instagram, Bumble, Tinder, etc).<br />
+                Our AI will scan for signs of fakes or scams. Private accounts get a custom assessment.
               </p>
             </CardHeader>
             <CardContent>
@@ -382,7 +365,7 @@ const ProfileGuardScanner: React.FC = () => {
                   type="text"
                   value={input}
                   onChange={e => setInput(e.target.value)}
-                  placeholder="e.g. instagram.com/girl_88_293 or girl_88_293"
+                  placeholder="e.g. instagram.com/your_profile"
                   className="bg-veritas-lightPurple/50 border-veritas-purple"
                   required
                   disabled={scanning}
@@ -394,13 +377,13 @@ const ProfileGuardScanner: React.FC = () => {
                 >
                   {scanning ? "Scanning..." : "Scan Profile"}
                 </Button>
-                {/* Clear button always available when input or result shown */}
+                {/* Reset/Start Over */}
                 {!scanning && (profile || result || input) && (
                   <Button
                     variant="ghost"
                     type="button"
                     className="w-full mt-1 text-veritas-purple"
-                    onClick={handleReset}
+                    onClick={resetAll}
                   >
                     Clear
                   </Button>
@@ -410,7 +393,7 @@ const ProfileGuardScanner: React.FC = () => {
                     variant="outline"
                     type="button"
                     className="w-full mt-1"
-                    onClick={handleReset}
+                    onClick={resetAll}
                     disabled={scanning}
                   >
                     Start New Scan
@@ -430,9 +413,9 @@ const ProfileGuardScanner: React.FC = () => {
           </div>
         )}
 
-        {/* Only render below if NOT scanning */}
         {!scanning && (
           <>
+            {/* Questionnaire for private */}
             {showQuestionnaire && (
               <Card className="w-full max-w-md mx-auto shadow-lg border-purple-200 mb-8 animate-in fade-in">
                 <CardHeader>
@@ -475,9 +458,10 @@ const ProfileGuardScanner: React.FC = () => {
               </Card>
             )}
 
+            {/* Profile/result display */}
             {profile && result && (
               <div className="w-full max-w-2xl flex flex-col md:flex-row gap-6">
-                {/* Public or Private Data Card */}
+                {/* Left: Profile card */}
                 <Card className="flex-1 px-0 shadow-md border-veritas-purple/20">
                   <CardHeader>
                     <div className="flex items-center gap-3 mb-2">
@@ -496,7 +480,12 @@ const ProfileGuardScanner: React.FC = () => {
                       />
                       <div>
                         <div className="font-semibold">@{profile.username}</div>
-                        {!isPrivate && (
+                        {"private" in profile && profile.private ? (
+                          <div className="text-gray-600 text-sm mt-1">
+                            This account is <b>private</b>. Most details are hidden.<br />
+                            Results are based on your answers.
+                          </div>
+                        ) : (
                           <>
                             <div className="text-gray-700 text-sm">Followers: <b>{profile.followers}</b></div>
                             <div className="text-gray-700 text-sm">Posts: <b>{profile.posts}</b></div>
@@ -505,18 +494,11 @@ const ProfileGuardScanner: React.FC = () => {
                             </div>
                           </>
                         )}
-                        {isPrivate && (
-                          <div className="text-gray-600 text-sm mt-1">
-                            This account is <b>private</b>. Most details are hidden.<br />
-                            Results are based on your answers.
-                          </div>
-                        )}
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-
-                {/* Result Panel */}
+                {/* Right: Result */}
                 <Card className="flex-1 shadow-lg border-veritas-purple/30 flex flex-col justify-between">
                   <CardHeader>
                     <div className="flex items-center gap-3 mb-2">
@@ -526,7 +508,7 @@ const ProfileGuardScanner: React.FC = () => {
                           : result.verdict === "Suspicious"
                             ? "#f59e42"
                             : "#dc2626"
-                      }/>
+                      } />
                       <CardTitle className={`text-xl ${
                         result.verdict === "Real" ? "text-green-700" : result.verdict === "Suspicious"
                           ? "text-yellow-700" : "text-red-700"
@@ -573,7 +555,7 @@ const ProfileGuardScanner: React.FC = () => {
           </>
         )}
 
-        {/* Show "Try Image Fake-Check" Step After Result */}
+        {/* Try Fake Profile Photo Detector button */}
         {profile && result && !showImageChecker && (
           <Button
             variant="outline"
@@ -586,7 +568,7 @@ const ProfileGuardScanner: React.FC = () => {
           </Button>
         )}
 
-        {/* Show Image Checker Card */}
+        {/* Fake Image Checker */}
         {showImageChecker && (
           <Card className="w-full shadow-lg mt-2 mb-8 border-purple-200 animate-in fade-in">
             <CardHeader>
@@ -602,7 +584,6 @@ const ProfileGuardScanner: React.FC = () => {
             <CardContent>
               <div className="flex flex-col sm:flex-row gap-6 items-start w-full">
                 <div className="flex flex-col items-center">
-                  {/* Upload Input */}
                   <label
                     className={`flex flex-col items-center justify-center w-40 h-40 border-2 ${previewUrl ? 'border-solid border-veritas-purple/30' : 'border-dashed border-gray-300'} 
                     rounded-lg cursor-pointer ${previewUrl ? 'bg-gray-50' : 'bg-gray-50 hover:bg-gray-100'}`}
@@ -626,9 +607,7 @@ const ProfileGuardScanner: React.FC = () => {
                     </div>
                   )}
                 </div>
-
                 <div className="flex-1 flex flex-col">
-                  {/* Buttons + Analysis result */}
                   <div className="flex items-center gap-3 flex-wrap mt-2">
                     <Button
                       type="button"
@@ -662,7 +641,6 @@ const ProfileGuardScanner: React.FC = () => {
                       </Button>
                     )}
                   </div>
-                  {/* Progress bar */}
                   {analyzingImage && (
                     <div className="mt-3">
                       <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
@@ -672,7 +650,6 @@ const ProfileGuardScanner: React.FC = () => {
                       <Progress value={imgProgress} className="h-1.5" />
                     </div>
                   )}
-                  {/* Result */}
                   {imgRisk && imgResultMsg && (
                     <Alert variant={imgRisk === "high" ? "destructive" : undefined} className={`mt-4
                       ${imgRisk === "high" ? "bg-red-100 border-red-200 text-red-800"
@@ -702,15 +679,14 @@ const ProfileGuardScanner: React.FC = () => {
           </Card>
         )}
 
-        {/* Tips or FAQ */}
+        {/* Tips/FAQ */}
         <div className="max-w-2xl mx-auto mt-8 text-sm text-gray-500 text-center">
           <div className="mb-2">
             <span className="font-medium text-veritas-purple">Note:</span> This tool uses a combination of AI and rule-based models to detect fake profiles. Results may not be 100% accurate—always use your own judgment.
           </div>
           <div>
-            Currently supports <span className="font-semibold">Instagram, Bumble, Tinder</span> and similar social networks.
-            <br />
-            <span>Backend logic and real verification (image/model/API checks) coming soon!</span>
+            Currently supports <span className="font-semibold">Instagram, Bumble, Tinder</span> and similar social networks.<br />
+            <span>Backend logic and real verification coming soon!</span>
           </div>
         </div>
       </main>
@@ -721,4 +697,4 @@ const ProfileGuardScanner: React.FC = () => {
 
 export default ProfileGuardScanner;
 
-// The file is over 400 lines, consider splitting into subcomponents for maintainability.
+// File is getting long; next, split out <QuestionnaireStep />, <ProfileResultCard />, and <ImageChecker /> components.
