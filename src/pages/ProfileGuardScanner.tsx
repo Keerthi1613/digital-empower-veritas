@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";
@@ -178,18 +178,22 @@ const ProfileGuardScanner: React.FC = () => {
   const [questionIdx, setQuestionIdx] = useState(0);
   const [privateProfilePic, setPrivateProfilePic] = useState<string | null>(null);
 
+  // New: Clear all scan UI immediately when scanning starts
+  React.useEffect(() => {
+    if (scanning) {
+      setProfile(null);
+      setResult(null);
+      setShowQuestionnaire(false);
+      setIsPrivate(false);
+      setAnswers({});
+      setQuestionIdx(0);
+      setPrivateProfilePic(null);
+    }
+  }, [scanning]);
+
   const handleScan = async (e: React.FormEvent) => {
     e.preventDefault();
-    // CLEAR all scan info BEFORE showing loading indicator
-    setProfile(null);
-    setResult(null);
-    setShowQuestionnaire(false);
-    setIsPrivate(false);
-    setAnswers({});
-    setQuestionIdx(0);
-    setPrivateProfilePic(null);
-
-    // setScanning set AFTER resetting, so UI clears *immediately*
+    // Set scanning first so effect above will clear UI on the next frame
     setScanning(true);
 
     // For DEMO: If input contains "private", treat as private profile.
@@ -289,7 +293,7 @@ const ProfileGuardScanner: React.FC = () => {
           </Card>
         </div>
 
-        {/* Render nothing (not questionnaire, not result, not profile) if scanning is in progress */}
+        {/* Only render below if NOT scanning */}
         {!scanning && (
           <>
             {/* Questionnaire Modal */}
