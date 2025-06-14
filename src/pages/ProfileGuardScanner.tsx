@@ -207,12 +207,15 @@ const ProfileGuardScanner: React.FC = () => {
     setQuestionIdx(0);
     setPrivateProfilePic(null);
     setShowImageChecker(false);
+
+    // --- IMPORTANT: Fully reset image checker state ---
     setSelectedImage(null);
     setPreviewUrl(null);
     setAnalyzingImage(false);
     setImgRisk(null);
     setImgResultMsg(null);
     setImgProgress(0);
+
     console.log("Input changed --> Full state reset");
   }, [input]);
 
@@ -228,12 +231,15 @@ const ProfileGuardScanner: React.FC = () => {
     setQuestionIdx(0);
     setPrivateProfilePic(null);
     setShowImageChecker(false);
+
+    // --- IMPORTANT: Fully reset image checker state on new scan ---
     setSelectedImage(null);
     setPreviewUrl(null);
     setAnalyzingImage(false);
     setImgRisk(null);
     setImgResultMsg(null);
     setImgProgress(0);
+
     console.log("Scan started");
 
     // Simulate async scan (replace with actual API/fetch logic)
