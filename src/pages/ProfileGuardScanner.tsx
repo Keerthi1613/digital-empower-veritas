@@ -180,9 +180,7 @@ const ProfileGuardScanner: React.FC = () => {
 
   const handleScan = async (e: React.FormEvent) => {
     e.preventDefault();
-    setScanning(true);
-
-    // Reset all scan-related state immediately for UI clarity
+    // Immediately clear all user-facing data. This will blank out results/UI on submit.
     setProfile(null);
     setResult(null);
     setShowQuestionnaire(false);
@@ -190,6 +188,7 @@ const ProfileGuardScanner: React.FC = () => {
     setAnswers({});
     setQuestionIdx(0);
     setPrivateProfilePic(null);
+    setScanning(true);
 
     // For DEMO: If input contains "private", treat as private profile.
     const lowerInput = input.toLowerCase();
@@ -288,145 +287,149 @@ const ProfileGuardScanner: React.FC = () => {
           </Card>
         </div>
 
-        {/* Questionnaire Modal */}
-        {showQuestionnaire && !scanning && (
-          <Card className="w-full max-w-md mx-auto shadow-lg border-purple-200 mb-8 animate-in fade-in">
-            <CardHeader>
-              <div className="flex items-center gap-2 mb-2">
-                <Lock className="h-6 w-6 text-veritas-purple" />
-                <CardTitle className="text-veritas-purple text-lg">Private Account Detected</CardTitle>
-              </div>
-              <p className="text-gray-700 text-sm">
-                Since this account is private, we'll ask you a few quick questions to assess possible risks.
-              </p>
-              <div className="flex justify-center mt-2">
-                {privateProfilePic && (
-                  <img
-                    src={privateProfilePic}
-                    alt="Profile"
-                    className="w-20 h-20 rounded-full border-4 border-veritas-purple shadow"
-                  />
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div>
-                <div className="font-medium mb-5 text-veritas-purple">
-                  {QUESTIONNAIRE[questionIdx].question}
-                </div>
-                <div className="flex flex-col gap-2">
-                  {QUESTIONNAIRE[questionIdx].options.map(opt => (
-                    <Button
-                      key={opt.value}
-                      className="w-full text-base py-2"
-                      variant="outline"
-                      onClick={() => handleAnswer(opt.value)}
-                    >
-                      {opt.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Result & Analysis */}
-        {/* Show only when not scanning and results are present */}
-        {profile && result && !scanning && (
-          <div className="w-full max-w-2xl flex flex-col md:flex-row gap-6">
-            {/* Public or Private Data Card */}
-            <Card className="flex-1 px-0 shadow-md border-veritas-purple/20">
-              <CardHeader>
-                <div className="flex items-center gap-3 mb-2">
-                  <Users className="h-6 w-6 text-veritas-purple" />
-                  <CardTitle className="text-veritas-purple text-xl">
-                    {isPrivate ? "Profile Data (Limited)" : "Extracted Public Data"}
-                  </CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-4 flex-wrap">
-                  <img
-                    src={profile.picture}
-                    alt="Profile"
-                    className="w-24 h-24 rounded-full border-4 border-veritas-purple shadow"
-                  />
-                  <div>
-                    <div className="font-semibold">@{profile.username}</div>
-                    {!isPrivate && (
-                      <>
-                        <div className="text-gray-700 text-sm">Followers: <b>{profile.followers}</b></div>
-                        <div className="text-gray-700 text-sm">Posts: <b>{profile.posts}</b></div>
-                        <div className="text-gray-700 text-sm break-all">
-                          Bio: <span className="italic">{profile.bio}</span>
-                        </div>
-                      </>
-                    )}
-                    {isPrivate && (
-                      <div className="text-gray-600 text-sm mt-1">
-                        This account is <b>private</b>. Most details are hidden.<br />
-                        Results are based on your answers.
-                      </div>
+        {/* Block ALL results/questionnaire/profile UI during scan */}
+        {!scanning && (
+          <>
+            {/* Questionnaire Modal */}
+            {showQuestionnaire && (
+              <Card className="w-full max-w-md mx-auto shadow-lg border-purple-200 mb-8 animate-in fade-in">
+                <CardHeader>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Lock className="h-6 w-6 text-veritas-purple" />
+                    <CardTitle className="text-veritas-purple text-lg">Private Account Detected</CardTitle>
+                  </div>
+                  <p className="text-gray-700 text-sm">
+                    Since this account is private, we'll ask you a few quick questions to assess possible risks.
+                  </p>
+                  <div className="flex justify-center mt-2">
+                    {privateProfilePic && (
+                      <img
+                        src={privateProfilePic}
+                        alt="Profile"
+                        className="w-20 h-20 rounded-full border-4 border-veritas-purple shadow"
+                      />
                     )}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardHeader>
+                <CardContent>
+                  <div>
+                    <div className="font-medium mb-5 text-veritas-purple">
+                      {QUESTIONNAIRE[questionIdx].question}
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {QUESTIONNAIRE[questionIdx].options.map(opt => (
+                        <Button
+                          key={opt.value}
+                          className="w-full text-base py-2"
+                          variant="outline"
+                          onClick={() => handleAnswer(opt.value)}
+                        >
+                          {opt.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-            {/* Result Panel */}
-            <Card className="flex-1 shadow-lg border-veritas-purple/30 flex flex-col justify-between">
-              <CardHeader>
-                <div className="flex items-center gap-3 mb-2">
-                  <Shield className="h-6 w-6" color={
-                    result.verdict === "Real"
-                      ? "#059669"
-                      : result.verdict === "Suspicious"
-                        ? "#f59e42"
-                        : "#dc2626"
-                  }/>
-                  <CardTitle className={`text-xl ${
-                    result.verdict === "Real" ? "text-green-700" : result.verdict === "Suspicious"
-                      ? "text-yellow-700" : "text-red-700"
-                  }`}>
-                    Result
-                  </CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="font-semibold text-md mb-2">
-                  Threat Score:{" "}
-                  <span className="inline-flex items-center gap-1">
-                    {result.threatScore}
-                    {result.threatScore < 2 && <Check className="text-green-700 h-5 w-5" />}
-                    {result.threatScore === 2 || result.threatScore === 3
-                      ? <ArrowUp className="text-yellow-600 h-5 w-5" />
-                      : null
-                    }
-                    {result.threatScore >= 4 && <X className="text-red-600 h-5 w-5" />}
-                  </span>
-                  <span className="text-xs ml-1 text-gray-500">(0 = safe, 5 = high risk)</span>
-                </div>
-                <div className="mb-1">
-                  Verdict: <b className={
-                    result.verdict === "Real"
-                      ? "text-green-700"
-                      : result.verdict === "Suspicious"
-                        ? "text-yellow-800"
-                        : "text-red-700"
-                  }>
-                    {result.verdict}
-                  </b>
-                </div>
-                <div className="mb-1">
-                  Confidence: <b>{result.confidence}%</b>
-                </div>
-                <div className="mt-2 text-sm text-gray-700">
-                  <b>Why?</b> {result.explanation}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+            {/* Result & Analysis */}
+            {profile && result && (
+              <div className="w-full max-w-2xl flex flex-col md:flex-row gap-6">
+                {/* Public or Private Data Card */}
+                <Card className="flex-1 px-0 shadow-md border-veritas-purple/20">
+                  <CardHeader>
+                    <div className="flex items-center gap-3 mb-2">
+                      <Users className="h-6 w-6 text-veritas-purple" />
+                      <CardTitle className="text-veritas-purple text-xl">
+                        {isPrivate ? "Profile Data (Limited)" : "Extracted Public Data"}
+                      </CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-4 flex-wrap">
+                      <img
+                        src={profile.picture}
+                        alt="Profile"
+                        className="w-24 h-24 rounded-full border-4 border-veritas-purple shadow"
+                      />
+                      <div>
+                        <div className="font-semibold">@{profile.username}</div>
+                        {!isPrivate && (
+                          <>
+                            <div className="text-gray-700 text-sm">Followers: <b>{profile.followers}</b></div>
+                            <div className="text-gray-700 text-sm">Posts: <b>{profile.posts}</b></div>
+                            <div className="text-gray-700 text-sm break-all">
+                              Bio: <span className="italic">{profile.bio}</span>
+                            </div>
+                          </>
+                        )}
+                        {isPrivate && (
+                          <div className="text-gray-600 text-sm mt-1">
+                            This account is <b>private</b>. Most details are hidden.<br />
+                            Results are based on your answers.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Result Panel */}
+                <Card className="flex-1 shadow-lg border-veritas-purple/30 flex flex-col justify-between">
+                  <CardHeader>
+                    <div className="flex items-center gap-3 mb-2">
+                      <Shield className="h-6 w-6" color={
+                        result.verdict === "Real"
+                          ? "#059669"
+                          : result.verdict === "Suspicious"
+                            ? "#f59e42"
+                            : "#dc2626"
+                      }/>
+                      <CardTitle className={`text-xl ${
+                        result.verdict === "Real" ? "text-green-700" : result.verdict === "Suspicious"
+                          ? "text-yellow-700" : "text-red-700"
+                      }`}>
+                        Result
+                      </CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="font-semibold text-md mb-2">
+                      Threat Score:{" "}
+                      <span className="inline-flex items-center gap-1">
+                        {result.threatScore}
+                        {result.threatScore < 2 && <Check className="text-green-700 h-5 w-5" />}
+                        {result.threatScore === 2 || result.threatScore === 3
+                          ? <ArrowUp className="text-yellow-600 h-5 w-5" />
+                          : null
+                        }
+                        {result.threatScore >= 4 && <X className="text-red-600 h-5 w-5" />}
+                      </span>
+                      <span className="text-xs ml-1 text-gray-500">(0 = safe, 5 = high risk)</span>
+                    </div>
+                    <div className="mb-1">
+                      Verdict: <b className={
+                        result.verdict === "Real"
+                          ? "text-green-700"
+                          : result.verdict === "Suspicious"
+                            ? "text-yellow-800"
+                            : "text-red-700"
+                      }>
+                        {result.verdict}
+                      </b>
+                    </div>
+                    <div className="mb-1">
+                      Confidence: <b>{result.confidence}%</b>
+                    </div>
+                    <div className="mt-2 text-sm text-gray-700">
+                      <b>Why?</b> {result.explanation}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </>
         )}
 
         {/* Tips or FAQ */}
