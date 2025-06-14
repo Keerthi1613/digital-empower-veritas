@@ -182,8 +182,15 @@ const ProfileGuardScanner: React.FC = () => {
   const handleScan = async (e: React.FormEvent) => {
     e.preventDefault();
     setScanning(true);
-    setShowQuestionnaire(false);
+
+    // Reset all scan-related state on every new scan
+    setProfile(null);
     setResult(null);
+    setShowQuestionnaire(false);
+    setIsPrivate(false);
+    setAnswers({});
+    setQuestionIdx(0);
+    setPrivateProfilePic(null);
 
     // For DEMO: If input contains "private", treat as private profile.
     const lowerInput = input.toLowerCase();
@@ -193,7 +200,6 @@ const ProfileGuardScanner: React.FC = () => {
         setProfile(MOCK_PROFILE_PRIVATE);
         setIsPrivate(true);
         setPrivateProfilePic(MOCK_PROFILE_PRIVATE.picture);
-        // Prompt questionnaire instead of public result
         setShowQuestionnaire(true);
       } else {
         setProfile(MOCK_PROFILE_PUBLIC);
