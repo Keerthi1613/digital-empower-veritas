@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
@@ -183,7 +182,7 @@ const ProfileGuardScanner: React.FC = () => {
     e.preventDefault();
     setScanning(true);
 
-    // Reset all scan-related state on every new scan
+    // Reset all scan-related state immediately for UI clarity
     setProfile(null);
     setResult(null);
     setShowQuestionnaire(false);
@@ -230,8 +229,8 @@ const ProfileGuardScanner: React.FC = () => {
   };
 
   const handleReset = () => {
+    setInput(""); // Clear the input box synchronously
     setProfile(null);
-    setInput("");
     setResult(null);
     setIsPrivate(false);
     setShowQuestionnaire(false);
@@ -279,6 +278,7 @@ const ProfileGuardScanner: React.FC = () => {
                     type="button"
                     className="w-full mt-1"
                     onClick={handleReset}
+                    disabled={scanning}
                   >
                     Start New Scan
                   </Button>
@@ -289,7 +289,7 @@ const ProfileGuardScanner: React.FC = () => {
         </div>
 
         {/* Questionnaire Modal */}
-        {showQuestionnaire && (
+        {showQuestionnaire && !scanning && (
           <Card className="w-full max-w-md mx-auto shadow-lg border-purple-200 mb-8 animate-in fade-in">
             <CardHeader>
               <div className="flex items-center gap-2 mb-2">
@@ -332,7 +332,8 @@ const ProfileGuardScanner: React.FC = () => {
         )}
 
         {/* Result & Analysis */}
-        {profile && result && (
+        {/* Show only when not scanning and results are present */}
+        {profile && result && !scanning && (
           <div className="w-full max-w-2xl flex flex-col md:flex-row gap-6">
             {/* Public or Private Data Card */}
             <Card className="flex-1 px-0 shadow-md border-veritas-purple/20">
