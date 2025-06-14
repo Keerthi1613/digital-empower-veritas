@@ -170,6 +170,7 @@ const FaceCheck = () => {
     }
   };
 
+  // Clear all state for a new scan
   const handleClear = () => {
     setSelectedImage(null);
     setPreviewUrl(null);
@@ -286,7 +287,7 @@ const FaceCheck = () => {
       // Determine if the image is real based on risk level
       setIsRealImage(data.riskLevel === 'low');
       
-      // Calculate accuracy percentage based on risk level
+      // Refined threshold analysis logic
       let apiRisk = (data && typeof data.riskLevel === "string" ? data.riskLevel : null) as 'low' | 'medium' | 'high' | null;
       let confidence = typeof data.confidenceScore === "number" ? data.confidenceScore : null;
 
@@ -297,14 +298,7 @@ const FaceCheck = () => {
       let displayConfidence = confidence;
       let internalResultString = "";
 
-      if (confidence === null) {
-        // fallback
-        displayRisk = 'uncertain';
-        displayMessage = "⚠️ Unable to confidently classify this image.";
-        badge = "Uncertain";
-        color = "text-yellow-600";
-        internalResultString = "Could not determine authenticity.";
-      } else if (confidence < 60) {
+      if (confidence === null || confidence < 60) {
         displayRisk = 'uncertain';
         displayMessage = "⚠️ Unable to confidently classify this image.";
         badge = "Uncertain";
@@ -348,10 +342,14 @@ const FaceCheck = () => {
       }
 
       setStatusMessage(null);
-
-      // Feed everything back to state for final display
       setAnalysisResult(internalResultString);
-      setRiskLevel(displayRisk === "real" ? "low" : displayRisk === "ai" ? "high" : displayRisk === "likely-ai" ? "medium" : null);
+      setRiskLevel(
+        displayRisk === "real" ? "low" :
+        displayRisk === "ai" ? "high" :
+        displayRisk === "likely-ai" ? "medium" :
+        displayRisk === "likely-real" ? "low" :
+        null
+      );
       setIsRealImage(displayRisk === "real" || displayRisk === "likely-real");
       setAccuracyPercentage(displayConfidence ?? 0);
 

@@ -178,8 +178,9 @@ const ProfileGuardScanner: React.FC = () => {
   const [questionIdx, setQuestionIdx] = useState(0);
   const [privateProfilePic, setPrivateProfilePic] = useState<string | null>(null);
 
-  // --- NEW: Immediate state reset on input change so that result never lingers
+  // Fully reset scan state on input change
   useEffect(() => {
+    setScanning(false);
     setProfile(null);
     setResult(null);
     setIsPrivate(false);
@@ -189,30 +190,23 @@ const ProfileGuardScanner: React.FC = () => {
     setPrivateProfilePic(null);
   }, [input]);
 
-  // --- Clean up state when a new scan starts
-  useEffect(() => {
-    if (scanning) {
-      setProfile(null);
-      setResult(null);
-      setShowQuestionnaire(false);
-      setIsPrivate(false);
-      setAnswers({});
-      setQuestionIdx(0);
-      setPrivateProfilePic(null);
-    }
-  }, [scanning]);
-
-  // --- Async fetch/result logic: only update when fetching is finished. Scanning state is handled cleanly.
+  // On scan, reset all and go to scanning state first
   const handleScan = async (e: React.FormEvent) => {
     e.preventDefault();
     setScanning(true);
+    setProfile(null);
+    setResult(null);
+    setShowQuestionnaire(false);
+    setIsPrivate(false);
+    setAnswers({});
+    setQuestionIdx(0);
+    setPrivateProfilePic(null);
 
-    // For DEMO: Simulate async
+    // Simulate async scan (replace with actual API/fetch logic)
     const lowerInput = input.trim().toLowerCase();
     const isPrivateProfile = lowerInput.includes("private");
 
-    await new Promise(res => setTimeout(res, 1200)); // Simulate API
-
+    await new Promise(res => setTimeout(res, 1200));
     if (isPrivateProfile) {
       setProfile(MOCK_PROFILE_PRIVATE);
       setIsPrivate(true);
@@ -247,7 +241,7 @@ const ProfileGuardScanner: React.FC = () => {
   };
 
   const handleReset = () => {
-    setInput(""); // Clear input triggers state reset effect
+    setInput("");
   };
 
   return (
@@ -284,6 +278,17 @@ const ProfileGuardScanner: React.FC = () => {
                 >
                   {scanning ? "Scanning..." : "Scan Profile"}
                 </Button>
+                {/* Clear button always available when input or result shown */}
+                {!scanning && (profile || result || input) && (
+                  <Button
+                    variant="ghost"
+                    type="button"
+                    className="w-full mt-1 text-veritas-purple"
+                    onClick={handleReset}
+                  >
+                    Clear
+                  </Button>
+                )}
                 {(profile || result) && !scanning && (
                   <Button
                     variant="outline"
@@ -295,26 +300,23 @@ const ProfileGuardScanner: React.FC = () => {
                     Start New Scan
                   </Button>
                 )}
-                {/* New: Dedicated Clear button */}
-                {!scanning && (profile || result || input) && (
-                  <Button
-                    variant="ghost"
-                    type="button"
-                    className="w-full mt-1 text-veritas-purple"
-                    onClick={handleReset}
-                  >
-                    Clear
-                  </Button>
-                )}
               </form>
             </CardContent>
           </Card>
         </div>
 
+        {/* Loading UI */}
+        {scanning && (
+          <div className="my-8 flex flex-col items-center gap-2 animate-pulse">
+            <Shield className="h-12 w-12 text-veritas-purple/60 animate-spin mb-2" />
+            <span className="text-veritas-purple text-xl font-medium">Scanning…</span>
+            <span className="text-gray-600 text-sm">Analyzing profile and signals…</span>
+          </div>
+        )}
+
         {/* Only render below if NOT scanning */}
         {!scanning && (
           <>
-            {/* Questionnaire Modal */}
             {showQuestionnaire && (
               <Card className="w-full max-w-md mx-auto shadow-lg border-purple-200 mb-8 animate-in fade-in">
                 <CardHeader>
@@ -357,7 +359,6 @@ const ProfileGuardScanner: React.FC = () => {
               </Card>
             )}
 
-            {/* Result & Analysis */}
             {profile && result && (
               <div className="w-full max-w-2xl flex flex-col md:flex-row gap-6">
                 {/* Public or Private Data Card */}
@@ -474,3 +475,5 @@ const ProfileGuardScanner: React.FC = () => {
 };
 
 export default ProfileGuardScanner;
+
+// The file is over 400 lines, consider splitting into subcomponents for maintainability.
