@@ -171,7 +171,7 @@ const ProfileGuardScanner: React.FC = () => {
   const [input, setInput] = useState("");
   const [scanning, setScanning] = useState(false);
 
-  // Profile/result data (dynamically generated for demo; nothing is hardcoded)
+  // Profile/result data (overwrite on every scan)
   const [profile, setProfile] = useState<PublicProfileData | PrivateProfileData | null>(null);
   const [result, setResult] = useState<ScanResult | null>(null);
 
@@ -184,7 +184,7 @@ const ProfileGuardScanner: React.FC = () => {
   // For private-profiles: let user upload a photo (simulate)
   const [privateProfilePic, setPrivateProfilePic] = useState<string | null>(null);
 
-  // Image checker step
+  // Image checker state (unchanged)
   const [showImageChecker, setShowImageChecker] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -193,7 +193,6 @@ const ProfileGuardScanner: React.FC = () => {
   const [imgResultMsg, setImgResultMsg] = useState<string | null>(null);
   const [imgProgress, setImgProgress] = useState(0);
 
-  // Reset all UI state, including image check step, whenever input or scan restarts
   const resetAll = () => {
     setScanning(false);
     setProfile(null);
@@ -204,7 +203,6 @@ const ProfileGuardScanner: React.FC = () => {
     setQuestionIdx(0);
     setPrivateProfilePic(null);
     setShowImageChecker(false);
-
     setSelectedImage(null);
     setPreviewUrl(null);
     setAnalyzingImage(false);
@@ -213,12 +211,10 @@ const ProfileGuardScanner: React.FC = () => {
     setImgProgress(0);
   };
 
-  // Also reset on input change (fresh scan)
   useEffect(() => {
     resetAll();
   }, [input]);
 
-  // Handle scanning: differentiate demo private/public accounts
   const handleScan = async (e: React.FormEvent) => {
     e.preventDefault();
     resetAll();
@@ -226,18 +222,17 @@ const ProfileGuardScanner: React.FC = () => {
 
     const userInput = input.trim();
 
-    // === "Private" logic: if user types "private" or "locked" etc in input, it's private. Otherwise public.
+    // Check if profile is "private" by pattern match
     const privatePattern = /private|locked|restricted/i;
     const isPrivateInput = privatePattern.test(userInput);
 
-    // demo: create profile with entered username
     await new Promise(res => setTimeout(res, 1200));
 
     if (isPrivateInput) {
-      // Private profile (fields hidden)
+      // Strictly use what the user typed as the profile id/link
       setProfile({
         picture: "https://randomuser.me/api/portraits/women/65.jpg",
-        username: userInput.replace(/[^a-zA-Z0-9_.-]/g, "_") || "private_user",
+        username: userInput, // Always user input
         private: true,
       });
       setPrivateProfilePic("https://randomuser.me/api/portraits/women/65.jpg");
@@ -245,14 +240,15 @@ const ProfileGuardScanner: React.FC = () => {
       setShowQuestionnaire(true);
       setResult(null);
     } else {
-      // Public profile: create randomized data
+      // Use the exact input as the identifier (even if it's a link, show it as the username)
+      // Demo: randomize only other fields, display entered link
       const nFollowers = Math.floor(Math.random() * 10000);
       const nPosts = Math.floor(Math.random() * 100);
       const demoBio = nFollowers < 20 ? "DM me for fun! 😘🔥" : "Passionate about travel, tech and art.";
       const avatarNum = Math.floor(Math.random() * 99) + 1;
       const generatedProfile: PublicProfileData = {
         picture: `https://randomuser.me/api/portraits/women/${avatarNum}.jpg`,
-        username: userInput.replace(/[^a-zA-Z0-9_.-]/g, "_") || "random_user",
+        username: userInput, // Always use user input
         followers: nFollowers,
         posts: nPosts,
         bio: demoBio,
@@ -266,7 +262,6 @@ const ProfileGuardScanner: React.FC = () => {
     setScanning(false);
   };
 
-  // Questionnaire flow for private profiles
   const handleAnswer = (val: string) => {
     const q = QUESTIONNAIRE[questionIdx];
     const updated = { ...answers, [q.key]: val };
@@ -281,7 +276,6 @@ const ProfileGuardScanner: React.FC = () => {
     }
   };
 
-  // Image checker handlers
   const resetImageChecker = () => {
     setSelectedImage(null);
     setPreviewUrl(null);
@@ -341,7 +335,6 @@ const ProfileGuardScanner: React.FC = () => {
     setAnalyzingImage(false);
   };
 
-  // Full UI
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-veritas-lightPurple to-white">
       <Navigation />
