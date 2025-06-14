@@ -180,7 +180,7 @@ const ProfileGuardScanner: React.FC = () => {
 
   const handleScan = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Immediately clear all user-facing data. This will blank out results/UI on submit.
+    // CLEAR all scan info BEFORE showing loading indicator
     setProfile(null);
     setResult(null);
     setShowQuestionnaire(false);
@@ -188,6 +188,8 @@ const ProfileGuardScanner: React.FC = () => {
     setAnswers({});
     setQuestionIdx(0);
     setPrivateProfilePic(null);
+
+    // setScanning set AFTER resetting, so UI clears *immediately*
     setScanning(true);
 
     // For DEMO: If input contains "private", treat as private profile.
@@ -271,7 +273,7 @@ const ProfileGuardScanner: React.FC = () => {
                   disabled={scanning || !input}>
                   {scanning ? "Scanning..." : "Scan Profile"}
                 </Button>
-                {(profile || result) && (
+                {(profile || result) && !scanning && (
                   <Button
                     variant="outline"
                     type="button"
@@ -287,7 +289,7 @@ const ProfileGuardScanner: React.FC = () => {
           </Card>
         </div>
 
-        {/* Block ALL results/questionnaire/profile UI during scan */}
+        {/* Render nothing (not questionnaire, not result, not profile) if scanning is in progress */}
         {!scanning && (
           <>
             {/* Questionnaire Modal */}
