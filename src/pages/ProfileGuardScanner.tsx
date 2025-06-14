@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
@@ -487,10 +486,14 @@ const ProfileGuardScanner: React.FC = () => {
                           </div>
                         ) : (
                           <>
-                            <div className="text-gray-700 text-sm">Followers: <b>{profile.followers}</b></div>
-                            <div className="text-gray-700 text-sm">Posts: <b>{profile.posts}</b></div>
+                            <div className="text-gray-700 text-sm">
+                              Followers: <b>{(profile as PublicProfileData).followers}</b>
+                            </div>
+                            <div className="text-gray-700 text-sm">
+                              Posts: <b>{(profile as PublicProfileData).posts}</b>
+                            </div>
                             <div className="text-gray-700 text-sm break-all">
-                              Bio: <span className="italic">{profile.bio}</span>
+                              Bio: <span className="italic">{(profile as PublicProfileData).bio}</span>
                             </div>
                           </>
                         )}
