@@ -1,1 +1,10 @@
 project_id = "hepowhfveilctxhokksw"
+
+[functions.ai-chatbot]
+verify_jwt = false
+
+[functions.facial-recognition]
+verify_jwt = false
+
+[functions.voice-assistant]
+verify_jwt = false
