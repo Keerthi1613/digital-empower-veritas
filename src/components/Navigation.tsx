@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Shield, Menu, X, MessageCircle, Users, Lock, LogOut, LogIn, AlertTriangle } from 'lucide-react';
+import { Shield, Menu, X, MessageCircle, Users, Lock, LogOut, LogIn, AlertTriangle, Mic } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -59,6 +59,9 @@ const Navigation = () => {
             <Link to="/profile-guard" className="text-gray-700 hover:text-veritas-purple transition-colors">ProfileGuard</Link>
             <Link to="/profile-guard-scanner" className="text-veritas-purple font-semibold hover:underline transition-colors">Scan Profile</Link>
             <Link to="/chatbot" className="text-gray-700 hover:text-veritas-purple transition-colors">Safety Assistant</Link>
+            <Link to="/voice-assistant" className="text-gray-700 hover:text-veritas-purple transition-colors flex items-center gap-1">
+              <Mic className="h-4 w-4" /> Voice
+            </Link>
             <Link to="/face-check" className="text-gray-700 hover:text-veritas-purple transition-colors">Image Check</Link>
             <Link to="/vault" className="text-gray-700 hover:text-veritas-purple transition-colors">Secure Vault</Link>
             <Link to="/analyzer" className="text-gray-700 hover:text-veritas-purple transition-colors">Safety Analyzer</Link>

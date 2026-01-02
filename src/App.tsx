@@ -17,6 +17,7 @@ import Login from "./pages/Login";
 import SignIn from "./pages/SignIn";
 import SafetyAnalyzer from "./pages/SafetyAnalyzer";
 import ProfileGuardScanner from "./pages/ProfileGuardScanner";
+import VoiceAssistant from "./pages/VoiceAssistant";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -76,6 +77,7 @@ const App = () => {
             <Route path="/face-check" element={isLoggedIn ? <FaceCheck /> : <Navigate to="/signin" />} />
             <Route path="/vault" element={isLoggedIn ? <EmergencyVault /> : <Navigate to="/signin" />} />
             <Route path="/analyzer" element={isLoggedIn ? <SafetyAnalyzer /> : <Navigate to="/signin" />} />
+            <Route path="/voice-assistant" element={isLoggedIn ? <VoiceAssistant /> : <Navigate to="/signin" />} />
             <Route path="/profile-guard-scanner" element={<ProfileGuardScanner />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
