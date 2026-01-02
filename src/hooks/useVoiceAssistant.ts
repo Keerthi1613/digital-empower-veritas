@@ -30,6 +30,14 @@ declare global {
   }
 }
 
+export type SupportedLanguage = 'en-US' | 'hi-IN' | 'kn-IN';
+
+export const LANGUAGE_OPTIONS: { code: SupportedLanguage; label: string; nativeLabel: string }[] = [
+  { code: 'en-US', label: 'English', nativeLabel: 'English' },
+  { code: 'hi-IN', label: 'Hindi', nativeLabel: 'हिंदी' },
+  { code: 'kn-IN', label: 'Kannada', nativeLabel: 'ಕನ್ನಡ' },
+];
+
 type Message = {
   id: string;
   role: 'user' | 'assistant';
@@ -42,6 +50,7 @@ export const useVoiceAssistant = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [language, setLanguage] = useState<SupportedLanguage>('en-US');
   const { toast } = useToast();
   
   const recognitionRef = useRef<SpeechRecognitionInterface | null>(null);
@@ -54,7 +63,7 @@ export const useVoiceAssistant = () => {
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = true;
-      recognitionRef.current.lang = 'en-US';
+      recognitionRef.current.lang = language;
 
       recognitionRef.current.onresult = (event) => {
         const current = event.resultIndex;
@@ -89,7 +98,7 @@ export const useVoiceAssistant = () => {
       }
       window.speechSynthesis.cancel();
     };
-  }, []);
+  }, [language]);
 
   const startListening = useCallback(() => {
     if (!recognitionRef.current) {
@@ -137,18 +146,18 @@ export const useVoiceAssistant = () => {
     utterance.rate = 1;
     utterance.pitch = 1;
     utterance.volume = 1;
+    utterance.lang = language;
 
-    // Try to use a female voice
+    // Try to find a voice matching the selected language
     const voices = window.speechSynthesis.getVoices();
-    const preferredVoice = voices.find(v => 
+    const langVoice = voices.find(v => v.lang === language || v.lang.startsWith(language.split('-')[0]));
+    const fallbackVoice = voices.find(v => 
       v.name.includes('Samantha') || 
       v.name.includes('Google US English') ||
       v.name.includes('Microsoft Zira')
     ) || voices[0];
     
-    if (preferredVoice) {
-      utterance.voice = preferredVoice;
-    }
+    utterance.voice = langVoice || fallbackVoice;
 
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
@@ -156,7 +165,7 @@ export const useVoiceAssistant = () => {
 
     synthRef.current = utterance;
     window.speechSynthesis.speak(utterance);
-  }, [toast]);
+  }, [toast, language]);
 
   const stopSpeaking = useCallback(() => {
     window.speechSynthesis.cancel();
@@ -280,6 +289,8 @@ export const useVoiceAssistant = () => {
     isSpeaking,
     isProcessing,
     transcript,
+    language,
+    setLanguage,
     startListening,
     stopListening,
     speak,
