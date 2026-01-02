@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, MicOff, Volume2, VolumeX, Send, Trash2, Phone, Shield, AlertTriangle } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, Send, Trash2, Phone, Shield, AlertTriangle, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Navigation from '@/components/Navigation';
-import { useVoiceAssistant } from '@/hooks/useVoiceAssistant';
+import { useVoiceAssistant, LANGUAGE_OPTIONS, SupportedLanguage } from '@/hooks/useVoiceAssistant';
 import { cn } from '@/lib/utils';
 
 const VoiceAssistant = () => {
@@ -15,6 +16,8 @@ const VoiceAssistant = () => {
     isSpeaking,
     isProcessing,
     transcript,
+    language,
+    setLanguage,
     startListening,
     stopListening,
     stopSpeaking,
@@ -52,9 +55,26 @@ const VoiceAssistant = () => {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             VERITAS Voice Assistant
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 mb-4">
             Your AI safety companion - speak or type to get help
           </p>
+          
+          {/* Language Selector */}
+          <div className="flex items-center justify-center gap-2">
+            <Globe className="w-4 h-4 text-gray-500" />
+            <Select value={language} onValueChange={(val) => setLanguage(val as SupportedLanguage)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select Language" />
+              </SelectTrigger>
+              <SelectContent>
+                {LANGUAGE_OPTIONS.map((lang) => (
+                  <SelectItem key={lang.code} value={lang.code}>
+                    {lang.nativeLabel} ({lang.label})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Main Voice Interface */}
