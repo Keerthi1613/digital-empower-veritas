@@ -143,28 +143,57 @@ export const useVoiceAssistant = () => {
     window.speechSynthesis.cancel();
     
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1;
+    utterance.rate = 0.9;
     utterance.pitch = 1;
     utterance.volume = 1;
     utterance.lang = language;
 
-    // Try to find a voice matching the selected language
-    const voices = window.speechSynthesis.getVoices();
-    const langVoice = voices.find(v => v.lang === language || v.lang.startsWith(language.split('-')[0]));
-    const fallbackVoice = voices.find(v => 
-      v.name.includes('Samantha') || 
-      v.name.includes('Google US English') ||
-      v.name.includes('Microsoft Zira')
-    ) || voices[0];
-    
-    utterance.voice = langVoice || fallbackVoice;
+    // Function to find and set the best voice for the language
+    const setVoice = () => {
+      const voices = window.speechSynthesis.getVoices();
+      const langCode = language.split('-')[0]; // 'kn', 'hi', 'en'
+      
+      // Priority: exact match > language prefix match > Google voice > Microsoft voice > any
+      const exactMatch = voices.find(v => v.lang === language);
+      const prefixMatch = voices.find(v => v.lang.startsWith(langCode));
+      const googleVoice = voices.find(v => 
+        v.name.toLowerCase().includes('google') && 
+        (v.lang === language || v.lang.startsWith(langCode))
+      );
+      const microsoftVoice = voices.find(v => 
+        v.name.toLowerCase().includes('microsoft') && 
+        (v.lang === language || v.lang.startsWith(langCode))
+      );
+      
+      const selectedVoice = googleVoice || microsoftVoice || exactMatch || prefixMatch;
+      
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+        console.log(`Using voice: ${selectedVoice.name} (${selectedVoice.lang})`);
+      } else {
+        console.log(`No voice found for ${language}, using default`);
+      }
+    };
+
+    // Voices may load async - wait for them if needed
+    if (window.speechSynthesis.getVoices().length === 0) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        setVoice();
+        window.speechSynthesis.speak(utterance);
+      };
+    } else {
+      setVoice();
+      window.speechSynthesis.speak(utterance);
+    }
 
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    utterance.onerror = (e) => {
+      console.error('Speech error:', e);
+      setIsSpeaking(false);
+    };
 
     synthRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
   }, [toast, language]);
 
   const stopSpeaking = useCallback(() => {
