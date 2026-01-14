@@ -211,7 +211,8 @@ export const useVoiceAssistant = () => {
         Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
       body: JSON.stringify({ 
-        messages: messagesToSend.map(m => ({ role: m.role, content: m.content }))
+        messages: messagesToSend.map(m => ({ role: m.role, content: m.content })),
+        language: language,
       }),
     });
 

@@ -11,14 +11,39 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, action } = await req.json();
+    const { messages, action, language } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Language-specific instructions
+    const languageInstructions: Record<string, string> = {
+      'en-US': 'Respond in English.',
+      'hi-IN': 'आप हिंदी में जवाब दें। Respond in Hindi (Devanagari script). Use simple, conversational Hindi.',
+      'kn-IN': 'ನೀವು ಕನ್ನಡದಲ್ಲಿ ಉತ್ತರಿಸಿ। Respond in Kannada (Kannada script). Use simple, conversational Kannada.',
+    };
+
+    const langInstruction = languageInstructions[language] || languageInstructions['en-US'];
+
+    // India-specific helplines for Hindi/Kannada users
+    const helplines = language === 'hi-IN' || language === 'kn-IN' 
+      ? `Emergency helplines (India):
+- Women Helpline: 181
+- Police: 100
+- Cybercrime Helpline: 1930
+- Child Helpline: 1098
+- National Commission for Women: 7827-170-170`
+      : `Emergency helplines (US):
+- National Domestic Violence Hotline: 1-800-799-7233
+- Crisis Text Line: Text HOME to 741741
+- National Sexual Assault Hotline: 1-800-656-4673
+- Cyber Tipline: 1-800-843-5678`;
+
     const systemPrompt = `You are VERITAS Voice Assistant, an AI safety companion specialized in online safety, emergency support, and app navigation.
+
+${langInstruction}
 
 Your capabilities:
 1. **Safety Guidance**: Help users identify online threats, recognize scams, understand red flags in relationships, and stay safe on social media.
@@ -30,13 +55,9 @@ Key behaviors:
 - Provide clear, actionable advice
 - Always prioritize user safety
 - Keep responses concise for voice interaction (2-3 sentences max unless more detail is needed)
-- If someone is in immediate danger, always recommend contacting emergency services (911) first
+- If someone is in immediate danger, always recommend contacting emergency services first
 
-Emergency helplines to remember:
-- National Domestic Violence Hotline: 1-800-799-7233
-- Crisis Text Line: Text HOME to 741741
-- National Sexual Assault Hotline: 1-800-656-4673
-- Cyber Tipline (for online exploitation): 1-800-843-5678
+${helplines}
 
 When guiding through app features:
 - ProfileGuard: Analyze social media profiles for red flags
@@ -45,7 +66,7 @@ When guiding through app features:
 - Evidence Vault: Securely store evidence
 - Report: Submit reports to authorities`;
 
-    console.log("Processing voice assistant request with action:", action);
+    console.log("Processing voice assistant request with language:", language);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
