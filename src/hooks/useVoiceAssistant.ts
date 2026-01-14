@@ -140,22 +140,49 @@ export const useVoiceAssistant = () => {
       return;
     }
 
+    // Cancel any ongoing speech
     window.speechSynthesis.cancel();
     
-    const utterance = new SpeechSynthesisUtterance(text);
+    // Chrome has a bug where long text can fail - split into chunks if needed
+    const maxLength = 200;
+    const textToSpeak = text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+    
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
     utterance.rate = 0.9;
     utterance.pitch = 1;
     utterance.volume = 1;
     utterance.lang = language;
 
+    // Set event handlers BEFORE speaking
+    utterance.onstart = () => {
+      console.log('Speech started');
+      setIsSpeaking(true);
+    };
+    utterance.onend = () => {
+      console.log('Speech ended');
+      setIsSpeaking(false);
+    };
+    utterance.onerror = (e) => {
+      console.error('Speech error:', e.error);
+      setIsSpeaking(false);
+      // Don't show toast for 'interrupted' errors (user cancelled)
+      if (e.error !== 'interrupted' && e.error !== 'canceled') {
+        toast({
+          title: "Speech Error",
+          description: "Could not play voice. Try using a different browser.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    synthRef.current = utterance;
+
     // Function to find and set the best voice for the language
-    const setVoice = () => {
+    const setVoiceAndSpeak = () => {
       const voices = window.speechSynthesis.getVoices();
       const langCode = language.split('-')[0]; // 'kn', 'hi', 'en'
       
-      // Priority: exact match > language prefix match > Google voice > Microsoft voice > any
-      const exactMatch = voices.find(v => v.lang === language);
-      const prefixMatch = voices.find(v => v.lang.startsWith(langCode));
+      // Priority: Google voice > Microsoft voice > exact match > prefix match
       const googleVoice = voices.find(v => 
         v.name.toLowerCase().includes('google') && 
         (v.lang === language || v.lang.startsWith(langCode))
@@ -164,36 +191,32 @@ export const useVoiceAssistant = () => {
         v.name.toLowerCase().includes('microsoft') && 
         (v.lang === language || v.lang.startsWith(langCode))
       );
+      const exactMatch = voices.find(v => v.lang === language);
+      const prefixMatch = voices.find(v => v.lang.startsWith(langCode));
       
-      const selectedVoice = googleVoice || microsoftVoice || exactMatch || prefixMatch;
+      const selectedVoice = googleVoice || microsoftVoice || exactMatch || prefixMatch || voices[0];
       
       if (selectedVoice) {
         utterance.voice = selectedVoice;
         console.log(`Using voice: ${selectedVoice.name} (${selectedVoice.lang})`);
       } else {
-        console.log(`No voice found for ${language}, using default`);
+        console.log(`No voice found for ${language}, using browser default`);
       }
+      
+      // Start speaking
+      setIsSpeaking(true);
+      window.speechSynthesis.speak(utterance);
     };
 
     // Voices may load async - wait for them if needed
-    if (window.speechSynthesis.getVoices().length === 0) {
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length === 0) {
       window.speechSynthesis.onvoiceschanged = () => {
-        setVoice();
-        window.speechSynthesis.speak(utterance);
+        setVoiceAndSpeak();
       };
     } else {
-      setVoice();
-      window.speechSynthesis.speak(utterance);
+      setVoiceAndSpeak();
     }
-
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = (e) => {
-      console.error('Speech error:', e);
-      setIsSpeaking(false);
-    };
-
-    synthRef.current = utterance;
   }, [toast, language]);
 
   const stopSpeaking = useCallback(() => {
@@ -263,7 +286,7 @@ export const useVoiceAssistant = () => {
     }
 
     return fullResponse;
-  }, []);
+  }, [language]);
 
   const handleUserMessage = useCallback(async (text: string) => {
     if (!text.trim()) return;
