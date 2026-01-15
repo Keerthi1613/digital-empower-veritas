@@ -71,6 +71,9 @@ const Login = () => {
         const { error } = await supabase.auth.signUp({
           email: state.email,
           password: state.password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+          },
         });
 
         if (error) throw error;
