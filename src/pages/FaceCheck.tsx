@@ -3,12 +3,11 @@ import Navigation from '../components/Navigation';
 import Footer from '../components/Footer';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Upload, AlertCircle, CheckCircle, Loader2, Image, Info, Shield, Share2, Sparkles, Scan, Eye, Zap, Camera, Brain } from 'lucide-react';
+import { Upload, AlertCircle, CheckCircle, Loader2, Image, Info, Shield, Share2, Camera, Eye, Zap } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from '@/lib/utils';
 
 const FaceCheck = () => {
@@ -29,7 +28,6 @@ const FaceCheck = () => {
   const [accuracyPercentage, setAccuracyPercentage] = useState<number | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
 
-  // Check for redirected image from ProfileGuard
   useEffect(() => {
     const redirectKey = sessionStorage.getItem('profile_guard_redirect');
     if (redirectKey) {
@@ -384,436 +382,348 @@ const FaceCheck = () => {
       return {
         title: "Authentic Image Detected",
         message: "This appears to be a genuine photograph of a real person.",
-        icon: CheckCircle,
-        gradient: "from-emerald-500 to-green-600"
+        color: "text-green-600",
+        bgColor: "bg-green-50",
+        borderColor: "border-green-200"
       };
     } else if (riskLevel === 'medium') {
       return {
         title: "Suspicious Elements Detected",
         message: "This image has some characteristics that could indicate AI generation.",
-        icon: AlertCircle,
-        gradient: "from-amber-500 to-orange-600"
+        color: "text-amber-600",
+        bgColor: "bg-amber-50",
+        borderColor: "border-amber-200"
       };
     } else {
       return {
         title: "AI-Generated Image Detected",
         message: "This image shows strong signs of being AI-generated.",
-        icon: AlertCircle,
-        gradient: "from-red-500 to-rose-600"
+        color: "text-red-600",
+        bgColor: "bg-red-50",
+        borderColor: "border-red-200"
       };
     }
   };
 
-  const features = [
-    {
-      icon: Brain,
-      title: "Neural Analysis",
-      description: "Deep learning models trained on millions of images"
-    },
-    {
-      icon: Eye,
-      title: "Pattern Detection",
-      description: "Identifies subtle artifacts invisible to human eye"
-    },
-    {
-      icon: Zap,
-      title: "Instant Results",
-      description: "Get comprehensive analysis in seconds"
-    }
-  ];
-
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
+    <div className="min-h-screen flex flex-col">
       <Navigation />
       
-      {/* Animated background elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-float" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-pink-500/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
-        {/* Grid pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:50px_50px]" />
-      </div>
-      
-      <main className="flex-grow relative z-10">
-        <div className="container mx-auto px-4 py-12 max-w-6xl">
-          
-          {/* Hero Section */}
-          <div className="text-center mb-12 animate-fade-up">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 mb-6">
-              <Sparkles className="w-4 h-4 text-purple-400" />
-              <span className="text-sm text-purple-200">AI-Powered Detection</span>
-            </div>
-            <h1 className="text-4xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-white via-purple-200 to-purple-400 bg-clip-text text-transparent">
-              Face Check Scanner
-            </h1>
-            <p className="text-lg text-gray-300 max-w-2xl mx-auto">
-              Detect AI-generated and deepfake images with our advanced neural network analysis
+      <main className="flex-grow">
+        <div className="veritas-container">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="page-title">Face Check Scanner</h1>
+            <p className="text-center text-gray-600 mb-8">
+              Detect AI-generated and deepfake images with our advanced detection system.
             </p>
-          </div>
 
-          {/* Main Scanner Card */}
-          <div className="max-w-4xl mx-auto mb-8 animate-scale-in">
-            <div className="relative group">
-              {/* Glow effect */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-pink-500 to-blue-600 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity duration-500" />
+            {/* How It Works Section */}
+            <div className="mb-10 bg-white rounded-xl border border-gray-200 p-6 shadow-md">
+              <h2 className="text-xl font-semibold mb-4 text-veritas-purple">How It Works</h2>
               
-              <Card className="relative bg-white/10 backdrop-blur-xl border-white/20 overflow-hidden">
-                {/* Scan line animation when analyzing */}
-                {isAnalyzing && (
-                  <div className="absolute inset-0 overflow-hidden pointer-events-none z-10">
-                    <div className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-purple-500 to-transparent animate-scan" />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div className="bg-veritas-lightPurple rounded-lg p-4">
+                  <div className="flex justify-center mb-3">
+                    <div className="bg-veritas-purple/10 rounded-full p-3">
+                      <Camera className="h-5 w-5 text-veritas-purple" />
+                    </div>
                   </div>
-                )}
+                  <h3 className="text-lg font-medium text-center mb-2">1. Upload Image</h3>
+                  <p className="text-sm text-gray-600 text-center">
+                    Upload a profile image or photo you want to verify
+                  </p>
+                </div>
                 
-                <CardHeader className="text-center border-b border-white/10 pb-6">
-                  <div className="flex items-center justify-center gap-3 mb-2">
-                    <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500">
-                      <Scan className="w-6 h-6 text-white" />
+                <div className="bg-veritas-lightPurple rounded-lg p-4">
+                  <div className="flex justify-center mb-3">
+                    <div className="bg-veritas-purple/10 rounded-full p-3">
+                      <Eye className="h-5 w-5 text-veritas-purple" />
                     </div>
-                    <CardTitle className="text-2xl font-bold text-white">Upload Image</CardTitle>
                   </div>
-                  <CardDescription className="text-gray-400">
-                    Drop your image here or click to browse
-                  </CardDescription>
-                </CardHeader>
-
-                <CardContent className="p-8">
-                  {/* Upload Zone */}
-                  <label 
-                    className={cn(
-                      "relative flex flex-col items-center justify-center w-full h-72 rounded-xl cursor-pointer transition-all duration-300",
-                      "border-2 border-dashed",
-                      isDragOver 
-                        ? "border-purple-400 bg-purple-500/20" 
-                        : previewUrl 
-                          ? "border-purple-500/50 bg-black/20" 
-                          : "border-white/20 bg-white/5 hover:bg-white/10 hover:border-white/30"
-                    )}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                  >
-                    {previewUrl ? (
-                      <div className="relative w-full h-full p-4">
-                        <img 
-                          src={previewUrl} 
-                          alt="Preview" 
-                          className="w-full h-full object-contain rounded-lg"
-                        />
-                        {/* Scanning overlay when analyzing */}
-                        {isAnalyzing && (
-                          <div className="absolute inset-4 rounded-lg bg-purple-500/10 backdrop-blur-sm flex items-center justify-center">
-                            <div className="text-center">
-                              <Loader2 className="w-12 h-12 text-purple-400 animate-spin mx-auto mb-3" />
-                              <p className="text-purple-200 font-medium">Analyzing...</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center gap-4 p-6">
-                        <div className={cn(
-                          "p-4 rounded-2xl transition-all duration-300",
-                          isDragOver 
-                            ? "bg-purple-500/30 scale-110" 
-                            : "bg-gradient-to-br from-purple-500/20 to-pink-500/20"
-                        )}>
-                          <Camera className="w-10 h-10 text-purple-400" />
-                        </div>
-                        <div className="text-center">
-                          <p className="text-white font-medium mb-1">
-                            {isDragOver ? "Drop your image here" : "Drag & drop your image"}
-                          </p>
-                          <p className="text-gray-400 text-sm">or click to browse</p>
-                        </div>
-                        <div className="flex gap-2 text-xs text-gray-500">
-                          <span className="px-2 py-1 rounded bg-white/5">PNG</span>
-                          <span className="px-2 py-1 rounded bg-white/5">JPG</span>
-                          <span className="px-2 py-1 rounded bg-white/5">WEBP</span>
-                          <span className="px-2 py-1 rounded bg-white/5">Max 5MB</span>
-                        </div>
-                      </div>
-                    )}
-                    <input 
-                      type="file" 
-                      className="hidden" 
-                      accept="image/*"
-                      onChange={handleImageChange}
-                    />
-                  </label>
-
-                  {/* File info */}
-                  {previewUrl && selectedImage && (
-                    <div className="mt-4 flex items-center justify-center gap-3 text-sm text-gray-400">
-                      <Image className="w-4 h-4" />
-                      <span>{selectedImage.name}</span>
-                      <span className="text-gray-600">•</span>
-                      <span>
-                        {(selectedImage.size / 1024 < 1000 
-                          ? `${Math.round(selectedImage.size / 1024)} KB` 
-                          : `${(selectedImage.size / (1024 * 1024)).toFixed(2)} MB`)}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Progress bar */}
-                  {isAnalyzing && (
-                    <div className="mt-6">
-                      <div className="flex items-center justify-between text-sm mb-2">
-                        <span className="text-purple-300">Analyzing image...</span>
-                        <span className="text-purple-400 font-mono">{uploadProgress}%</span>
-                      </div>
-                      <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 rounded-full transition-all duration-300 bg-[length:200%_100%] animate-shimmer"
-                          style={{ width: `${uploadProgress}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Action buttons */}
-                  <div className="flex justify-center gap-4 mt-8">
-                    <Button
-                      onClick={handleAnalyze}
-                      disabled={!selectedImage || isAnalyzing}
-                      size="lg"
-                      className={cn(
-                        "relative px-8 py-6 text-lg font-semibold rounded-xl transition-all duration-300",
-                        "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500",
-                        "shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40",
-                        "disabled:opacity-50 disabled:cursor-not-allowed"
-                      )}
-                    >
-                      {isAnalyzing ? (
-                        <>
-                          <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                          Analyzing...
-                        </>
-                      ) : (
-                        <>
-                          <Shield className="w-5 h-5 mr-2" />
-                          {analysisResult ? "Analyze Again" : "Start Analysis"}
-                        </>
-                      )}
-                    </Button>
-                    
-                    {(selectedImage || analysisResult) && (
-                      <Button
-                        onClick={handleClear}
-                        variant="outline"
-                        size="lg"
-                        disabled={isAnalyzing}
-                        className="px-6 py-6 text-lg rounded-xl border-white/20 text-white hover:bg-white/10"
-                      >
-                        Clear
-                      </Button>
-                    )}
-                  </div>
-
-                  {/* Error message */}
-                  {errorMessage && (
-                    <Alert variant="destructive" className="mt-6 bg-red-500/10 border-red-500/30">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Error</AlertTitle>
-                      <AlertDescription className="space-y-2">
-                        <p>{errorMessage}</p>
-                        <Button variant="outline" size="sm" onClick={handleRetry} className="mt-2">
-                          Try Again
-                        </Button>
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* Results Section */}
-          {analysisResult && (
-            <div className="max-w-4xl mx-auto mb-12 animate-fade-up">
-              <div className="relative group">
-                <div className={cn(
-                  "absolute -inset-1 rounded-2xl blur-lg opacity-50 transition-opacity duration-500",
-                  riskLevel === 'low' && "bg-gradient-to-r from-emerald-600 to-green-600",
-                  riskLevel === 'medium' && "bg-gradient-to-r from-amber-600 to-orange-600",
-                  riskLevel === 'high' && "bg-gradient-to-r from-red-600 to-rose-600"
-                )} />
+                  <h3 className="text-lg font-medium text-center mb-2">2. AI Analysis</h3>
+                  <p className="text-sm text-gray-600 text-center">
+                    Our AI scans for signs of manipulation or generation
+                  </p>
+                </div>
                 
-                <Card className="relative bg-white/10 backdrop-blur-xl border-white/20 overflow-hidden">
-                  {/* Result header with gradient */}
-                  <CardHeader className={cn(
-                    "border-b border-white/10",
-                    riskLevel === 'low' && "bg-gradient-to-r from-emerald-500/20 to-green-500/20",
-                    riskLevel === 'medium' && "bg-gradient-to-r from-amber-500/20 to-orange-500/20",
-                    riskLevel === 'high' && "bg-gradient-to-r from-red-500/20 to-rose-500/20"
-                  )}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className={cn(
-                          "p-3 rounded-xl",
-                          riskLevel === 'low' && "bg-emerald-500/20",
-                          riskLevel === 'medium' && "bg-amber-500/20",
-                          riskLevel === 'high' && "bg-red-500/20"
-                        )}>
-                          {riskLevel === 'low' && (
-                            <CheckCircle className={cn(
-                              "w-8 h-8 text-emerald-400"
-                            )} />
-                          )}
-                          {(riskLevel === 'medium' || riskLevel === 'high') && (
-                            <AlertCircle className={cn(
-                              "w-8 h-8",
-                              riskLevel === 'medium' && "text-amber-400",
-                              riskLevel === 'high' && "text-red-400"
-                            )} />
-                          )}
-                        </div>
-                        <div>
-                          <CardTitle className="text-2xl text-white">{getResultMessage()?.title}</CardTitle>
-                          <p className="text-gray-400 mt-1">{getResultMessage()?.message}</p>
-                        </div>
-                      </div>
-                      
-                      {/* Risk badge */}
-                      <div className={cn(
-                        "px-4 py-2 rounded-full font-bold text-sm",
-                        riskLevel === 'low' && "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
-                        riskLevel === 'medium' && "bg-amber-500/20 text-amber-400 border border-amber-500/30",
-                        riskLevel === 'high' && "bg-red-500/20 text-red-400 border border-red-500/30"
-                      )}>
-                        {riskLevel?.toUpperCase()} RISK
-                      </div>
+                <div className="bg-veritas-lightPurple rounded-lg p-4">
+                  <div className="flex justify-center mb-3">
+                    <div className="bg-veritas-purple/10 rounded-full p-3">
+                      <Zap className="h-5 w-5 text-veritas-purple" />
                     </div>
-                  </CardHeader>
-
-                  <CardContent className="p-6 space-y-6">
-                    {/* Accuracy meter */}
-                    {accuracyPercentage !== null && (
-                      <div className="p-4 rounded-xl bg-black/20 border border-white/10">
-                        <div className="flex justify-between items-center mb-3">
-                          <span className="text-gray-300 font-medium">Confidence Score</span>
-                          <span className={cn(
-                            "text-2xl font-bold",
-                            riskLevel === 'low' && "text-emerald-400",
-                            riskLevel === 'medium' && "text-amber-400",
-                            riskLevel === 'high' && "text-red-400"
-                          )}>
-                            {accuracyPercentage}%
-                          </span>
-                        </div>
-                        <div className="h-3 bg-white/10 rounded-full overflow-hidden">
-                          <div 
-                            className={cn(
-                              "h-full rounded-full transition-all duration-1000",
-                              riskLevel === 'low' && "bg-gradient-to-r from-emerald-500 to-green-500",
-                              riskLevel === 'medium' && "bg-gradient-to-r from-amber-500 to-orange-500",
-                              riskLevel === 'high' && "bg-gradient-to-r from-red-500 to-rose-500"
-                            )}
-                            style={{ width: `${accuracyPercentage}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Analysis details */}
-                    <div className="p-4 rounded-xl bg-black/20 border border-white/10">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Info className="w-4 h-4 text-purple-400" />
-                        <span className="text-white font-medium">AI Analysis</span>
-                      </div>
-                      <p className="text-gray-300">{analysisResult}</p>
-                    </div>
-
-                    {/* Safety recommendation */}
-                    <div className={cn(
-                      "p-4 rounded-xl border",
-                      riskLevel === 'low' && "bg-emerald-500/10 border-emerald-500/20",
-                      riskLevel === 'medium' && "bg-amber-500/10 border-amber-500/20",
-                      riskLevel === 'high' && "bg-red-500/10 border-red-500/20"
-                    )}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Shield className={cn(
-                          "w-4 h-4",
-                          riskLevel === 'low' && "text-emerald-400",
-                          riskLevel === 'medium' && "text-amber-400",
-                          riskLevel === 'high' && "text-red-400"
-                        )} />
-                        <span className="text-white font-medium">Safety Recommendation</span>
-                      </div>
-                      <p className={cn(
-                        "text-sm",
-                        riskLevel === 'low' && "text-emerald-300",
-                        riskLevel === 'medium' && "text-amber-300",
-                        riskLevel === 'high' && "text-red-300"
-                      )}>
-                        {riskLevel === 'high' 
-                          ? "This image has a high risk of being fake or AI-generated. We strongly recommend avoiding contact with profiles using this image." 
-                          : riskLevel === 'medium' 
-                          ? "This image has some suspicious characteristics. Proceed with caution and look for other verification before trusting this profile." 
-                          : "This image appears to be a legitimate photograph, but always remain vigilant about other warning signs of scams."}
-                      </p>
-                    </div>
-                  </CardContent>
-
-                  <CardFooter className="border-t border-white/10 p-4 flex justify-end gap-3">
-                    <Button 
-                      variant="outline" 
-                      onClick={handleShareResults}
-                      className="border-white/20 text-white hover:bg-white/10"
-                    >
-                      <Share2 className="w-4 h-4 mr-2" />
-                      Share Results
-                    </Button>
-                    
-                    {riskLevel === 'high' && (
-                      <Button className="bg-red-600 hover:bg-red-700">
-                        Report Profile
-                      </Button>
-                    )}
-                  </CardFooter>
-                </Card>
+                  </div>
+                  <h3 className="text-lg font-medium text-center mb-2">3. Get Results</h3>
+                  <p className="text-sm text-gray-600 text-center">
+                    Receive a detailed authenticity assessment instantly
+                  </p>
+                </div>
+              </div>
+              
+              <div className="bg-gray-50 border border-gray-100 rounded-lg p-4">
+                <div className="flex items-center">
+                  <Shield className="h-5 w-5 text-veritas-purple mr-2" />
+                  <p className="text-sm text-veritas-purple font-medium">Your uploads are processed securely and privately</p>
+                </div>
               </div>
             </div>
-          )}
 
-          {/* Features Section */}
-          <div className="max-w-4xl mx-auto mt-16">
-            <h2 className="text-2xl font-bold text-center text-white mb-8">How It Works</h2>
-            <div className="grid md:grid-cols-3 gap-6">
-              {features.map((feature, index) => (
-                <div 
-                  key={feature.title}
-                  className="group relative animate-fade-up"
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-pink-600/20 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  <Card className="relative h-full bg-white/5 backdrop-blur-sm border-white/10 hover:bg-white/10 transition-all duration-300">
-                    <CardHeader>
-                      <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 w-fit mb-3">
-                        <feature.icon className="w-6 h-6 text-purple-400" />
-                      </div>
-                      <CardTitle className="text-lg text-white">{feature.title}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-gray-400 text-sm">{feature.description}</p>
-                    </CardContent>
-                  </Card>
+            {/* Upload Card */}
+            <Card className="mb-8 shadow-md border-gray-200">
+              <CardHeader className="border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="bg-veritas-purple/10 rounded-full p-2">
+                    <Image className="h-5 w-5 text-veritas-purple" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl text-veritas-darkPurple">Upload Image</CardTitle>
+                    <CardDescription>Drop your image here or click to browse</CardDescription>
+                  </div>
                 </div>
-              ))}
-            </div>
-            
-            <div className="text-center mt-10">
-              <p className="text-sm text-gray-500 max-w-2xl mx-auto">
-                <strong className="text-gray-400">Note:</strong> While our system uses advanced AI technology to analyze images, no detection system is 100% accurate. 
-                Always use your judgment and look for multiple warning signs when interacting with unknown profiles online.
+              </CardHeader>
+
+              <CardContent className="p-6">
+                {/* Upload Zone */}
+                <label 
+                  className={cn(
+                    "relative flex flex-col items-center justify-center w-full min-h-[280px] rounded-xl border-2 border-dashed cursor-pointer transition-all duration-300",
+                    isDragOver 
+                      ? "border-veritas-purple bg-veritas-lightPurple" 
+                      : "border-gray-300 bg-gray-50 hover:bg-veritas-lightPurple hover:border-veritas-purple/50",
+                    previewUrl && "border-solid border-veritas-purple/30"
+                  )}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    disabled={isAnalyzing}
+                  />
+                  
+                  {previewUrl ? (
+                    <div className="relative w-full h-full flex items-center justify-center p-4">
+                      <img
+                        src={previewUrl}
+                        alt="Preview"
+                        className="max-h-64 max-w-full object-contain rounded-lg shadow-md"
+                      />
+                      {isAnalyzing && (
+                        <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center rounded-xl">
+                          <Loader2 className="w-10 h-10 text-veritas-purple animate-spin mb-3" />
+                          <p className="text-veritas-purple font-medium">{statusMessage || "Analyzing..."}</p>
+                          <div className="w-48 mt-3">
+                            <Progress value={uploadProgress} className="h-2" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-8">
+                      <div className="p-4 rounded-full bg-veritas-lightPurple mb-4">
+                        <Upload className="w-8 h-8 text-veritas-purple" />
+                      </div>
+                      <p className="text-lg font-medium text-gray-700 mb-1">
+                        Drop image here or click to upload
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Supports JPG, PNG, WEBP (max 5MB)
+                      </p>
+                    </div>
+                  )}
+                </label>
+
+                {/* Action Buttons */}
+                {selectedImage && !isAnalyzing && (
+                  <div className="flex flex-wrap gap-3 mt-6 justify-center">
+                    <Button
+                      onClick={handleAnalyze}
+                      className="bg-veritas-purple hover:bg-veritas-darkPurple text-white"
+                      disabled={isAnalyzing}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      Analyze Image
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleClear}
+                      className="border-gray-300 hover:bg-gray-100"
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                )}
+
+                {/* Error Message */}
+                {errorMessage && (
+                  <Alert variant="destructive" className="mt-6">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{errorMessage}</AlertDescription>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleRetry}
+                      className="mt-2"
+                    >
+                      Retry Analysis
+                    </Button>
+                  </Alert>
+                )}
+
+                {/* Fallback Notice */}
+                {isFallback && (
+                  <Alert className="mt-6 border-amber-200 bg-amber-50">
+                    <Info className="h-4 w-4 text-amber-600" />
+                    <AlertTitle className="text-amber-800">Limited Analysis Mode</AlertTitle>
+                    <AlertDescription className="text-amber-700">
+                      Due to high demand, we're providing a basic analysis. Full service will resume shortly.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Results Section */}
+                {analysisResult && riskLevel && (
+                  <div className="mt-6">
+                    {(() => {
+                      const result = getResultMessage();
+                      if (!result) return null;
+                      
+                      return (
+                        <div className={cn(
+                          "rounded-xl border p-6",
+                          result.bgColor,
+                          result.borderColor
+                        )}>
+                          <div className="flex items-start gap-4">
+                            <div className={cn(
+                              "p-2 rounded-full",
+                              riskLevel === 'low' ? "bg-green-100" : 
+                              riskLevel === 'medium' ? "bg-amber-100" : "bg-red-100"
+                            )}>
+                              {riskLevel === 'low' ? (
+                                <CheckCircle className="w-6 h-6 text-green-600" />
+                              ) : (
+                                <AlertCircle className={cn(
+                                  "w-6 h-6",
+                                  riskLevel === 'medium' ? "text-amber-600" : "text-red-600"
+                                )} />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h3 className={cn("text-lg font-semibold mb-1", result.color)}>
+                                {result.title}
+                              </h3>
+                              <p className="text-gray-700 mb-3">{result.message}</p>
+                              
+                              {accuracyPercentage !== null && (
+                                <div className="mb-4">
+                                  <div className="flex justify-between text-sm mb-1">
+                                    <span className="text-gray-600">Confidence</span>
+                                    <span className="font-medium">{accuracyPercentage}%</span>
+                                  </div>
+                                  <Progress value={accuracyPercentage} className="h-2" />
+                                </div>
+                              )}
+                              
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={handleShareResults}
+                                  className="border-gray-300"
+                                >
+                                  <Share2 className="w-4 h-4 mr-2" />
+                                  Share Results
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={handleClear}
+                                  className="border-gray-300"
+                                >
+                                  Analyze Another
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Previous Analyses */}
+            {previousAnalyses.length > 0 && (
+              <div className="mb-10">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-veritas-darkPurple">Recent Analyses</h2>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowHistory(!showHistory)}
+                    className="text-veritas-purple hover:text-veritas-darkPurple"
+                  >
+                    {showHistory ? "Hide" : "Show"}
+                  </Button>
+                </div>
+                
+                {showHistory && (
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    {previousAnalyses.map((analysis, index) => (
+                      <div
+                        key={analysis.id || index}
+                        className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm hover:shadow-md transition-shadow"
+                      >
+                        <div className="aspect-square rounded-md overflow-hidden bg-gray-100 mb-2">
+                          <img
+                            src={analysis.image_url}
+                            alt={`Analysis ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className={cn(
+                            "text-xs font-medium px-2 py-1 rounded-full",
+                            analysis.risk_level === 'low' ? "bg-green-100 text-green-700" :
+                            analysis.risk_level === 'medium' ? "bg-amber-100 text-amber-700" :
+                            "bg-red-100 text-red-700"
+                          )}>
+                            {analysis.risk_level === 'low' ? 'Real' : 
+                             analysis.risk_level === 'medium' ? 'Uncertain' : 'AI'}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {new Date(analysis.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Info Section */}
+            <div className="bg-veritas-lightPurple rounded-xl border border-veritas-purple/20 p-6 text-center">
+              <h3 className="text-xl font-semibold mb-4 text-veritas-purple">Why Use Face Check?</h3>
+              <p className="text-gray-600 mb-4 max-w-2xl mx-auto">
+                With the rise of AI-generated images and deepfakes, it's becoming increasingly difficult 
+                to distinguish real photos from fake ones. Our Face Check scanner helps you verify the 
+                authenticity of profile images and photos before engaging with strangers online.
               </p>
+              <div className="flex items-center justify-center gap-2 text-veritas-purple">
+                <Shield className="h-5 w-5" />
+                <span className="font-medium">Protect yourself from catfishing and scams</span>
+              </div>
             </div>
           </div>
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );
